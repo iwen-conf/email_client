@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/iwen-conf/email_client/client"
 	"log"
 	"time"
-
-	// 导入新的 SDK 包
-	"github.com/iwen-conf/email_client/pkg/emailclient" // 确保这个路径与你的 go.mod 模块路径匹配
 )
 
 func main() {
@@ -14,7 +12,7 @@ func main() {
 	grpcAddress := "localhost:50051"
 
 	// 创建 EmailServiceClient
-	emailClient, err := emailclient.NewEmailServiceClient(grpcAddress, 15*time.Second, 10)
+	emailClient, err := client.NewEmailServiceClient(grpcAddress, 15*time.Second, 10)
 	if err != nil {
 		log.Fatalf("无法创建 EmailServiceClient: %v", err)
 	}
@@ -23,7 +21,7 @@ func main() {
 	fmt.Println("成功连接到邮件服务!")
 
 	// 创建 ConfigServiceClient
-	configClient, err := emailclient.NewConfigServiceClient(grpcAddress, 10*time.Second, 5)
+	configClient, err := client.NewConfigServiceClient(grpcAddress, 10*time.Second, 5)
 	if err != nil {
 		log.Fatalf("无法创建 ConfigServiceClient: %v", err)
 	}
