@@ -21,17 +21,20 @@ type EmailClient struct {
 	configService   *ConfigServiceClient
 	requestTimeout  time.Duration
 	defaultPageSize int32
+	debug           bool
 }
 
 // NewEmailClient 创建一个新的 EmailClient 实例。
-// 它会建立一个到指定 gRPC 服务地址的连接，并初始化底层的服务客户端。
-func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPageSize int32) (*EmailClient, error) {
+// debug 参数控制是否打印 INFO 和 DEBUG 级别的日志。
+func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPageSize int32, debug bool) (*EmailClient, error) {
 	if grpcAddress == "" {
 		log.Println("[ERROR] NewEmailClient: gRPC 服务地址不能为空")
 		return nil, fmt.Errorf("gRPC 服务地址不能为空")
 	}
 
-	log.Printf("[INFO] NewEmailClient: 正在尝试连接统一 gRPC 服务: %s", grpcAddress)
+	if debug {
+		log.Printf("[INFO] NewEmailClient: 正在尝试连接统一 gRPC 服务: %s", grpcAddress)
+	}
 
 	// 建立共享的 gRPC 连接
 	conn, err := grpc.NewClient(grpcAddress,
@@ -44,7 +47,11 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 
 	// 主动连接并等待 Ready 状态
 	conn.Connect()
-	log.Printf("[INFO] NewEmailClient: 正在等待连接变为 Ready 状态 (%s)...", grpcAddress)
+	if debug {
+		log.Printf("[INFO] NewEmailClient: 正在等待连接变为 Ready 状态 (%s)...", grpcAddress)
+	}
+
+	const defaultConnectTimeout = 10 * time.Second
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultConnectTimeout)
 	defer cancel()
@@ -52,25 +59,26 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 	for {
 		state := conn.GetState()
 		if state == connectivity.Ready {
-			log.Printf("[INFO] NewEmailClient: 成功连接到 gRPC 服务 (%s)", grpcAddress)
+			if debug {
+				log.Printf("[INFO] NewEmailClient: 成功连接到 gRPC 服务 (%s)", grpcAddress)
+			}
 			break // 成功连接
 		}
 		if !conn.WaitForStateChange(ctx, state) {
-			// 关闭尝试失败的连接
 			conn.Close()
 			errMsg := fmt.Sprintf("等待连接状态变化超时或被取消 (%s)", grpcAddress)
 			log.Printf("[ERROR] NewEmailClient: %s", errMsg)
-			return nil, fmt.Errorf(errMsg)
+			return nil, fmt.Errorf("%s", errMsg)
 		}
 		currentState := conn.GetState()
-		log.Printf("[DEBUG] NewEmailClient: 连接状态变化 (%s): %v -> %v", grpcAddress, state, currentState)
-		// 检查是否已经进入失败状态
+		if debug {
+			log.Printf("[DEBUG] NewEmailClient: 连接状态变化 (%s): %v -> %v", grpcAddress, state, currentState)
+		}
 		if currentState == connectivity.TransientFailure || currentState == connectivity.Shutdown {
-			// 关闭尝试失败的连接
 			conn.Close()
 			errMsg := fmt.Sprintf("连接失败，当前状态: %v (%s)", currentState, grpcAddress)
 			log.Printf("[ERROR] NewEmailClient: %s", errMsg)
-			return nil, fmt.Errorf(errMsg)
+			return nil, fmt.Errorf("%s", errMsg)
 		}
 	}
 
@@ -78,20 +86,24 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 	emailGrpcClient := email_client_pb.NewEmailServiceClient(conn)
 	configGrpcClient := email_client_pb.NewEmailConfigServiceClient(conn)
 
-	log.Printf("[INFO] NewEmailClient: 已创建 EmailService 和 ConfigService 客户端 (%s)", grpcAddress)
+	if debug {
+		log.Printf("[INFO] NewEmailClient: 已创建 EmailService 和 ConfigService 客户端 (%s)", grpcAddress)
+	}
 
-	// 创建内部的服务客户端实例
+	// 创建内部的服务客户端实例, 传递 debug 状态
 	emailService := &EmailServiceClient{
 		client:          emailGrpcClient,
-		conn:            conn, // 注意：这里传递了共享连接，但 EmailServiceClient 的 Close 不应关闭它
+		conn:            conn,
 		requestTimeout:  requestTimeout,
 		defaultPageSize: defaultPageSize,
+		debug:           debug,
 	}
 	configService := &ConfigServiceClient{
 		client:          configGrpcClient,
-		conn:            conn, // 注意：这里传递了共享连接，但 ConfigServiceClient 的 Close 不应关闭它
+		conn:            conn,
 		requestTimeout:  requestTimeout,
 		defaultPageSize: defaultPageSize,
+		debug:           debug,
 	}
 
 	return &EmailClient{
@@ -100,6 +112,7 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 		configService:   configService,
 		requestTimeout:  requestTimeout,
 		defaultPageSize: defaultPageSize,
+		debug:           debug,
 	}, nil
 }
 
@@ -107,10 +120,10 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 // 注意：调用此方法后，通过 EmailService() 和 ConfigService() 获取的客户端实例也将失效。
 func (c *EmailClient) Close() error {
 	if c.conn != nil {
-		log.Printf("[INFO] EmailClient.Close: 正在关闭共享 gRPC 连接: %s", c.conn.Target())
-		// 只有 EmailClient 的 Close 才真正关闭连接
+		if c.debug {
+			log.Printf("[INFO] EmailClient.Close: 正在关闭共享 gRPC 连接: %s", c.conn.Target())
+		}
 		err := c.conn.Close()
-		// 将内部客户端的 conn 设置为 nil，防止它们的 Close 方法尝试再次关闭
 		if c.emailService != nil {
 			c.emailService.conn = nil
 		}

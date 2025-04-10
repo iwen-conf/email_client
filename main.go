@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"time"
@@ -11,14 +12,25 @@ import (
 )
 
 func main() {
-	// gRPC 服务地址
-	grpcAddress := "localhost:50051"
-	// 统一的请求超时和默认分页大小 (可以根据需要调整)
-	requestTimeout := 15 * time.Second
-	defaultPageSize := int32(10)
+	// --- 配置参数 ---
+	grpcAddress := flag.String("addr", "localhost:50051", "gRPC 服务地址")
+	requestTimeoutSec := flag.Int("timeout", 15, "默认请求超时时间 (秒)")
+	defaultPageSize := flag.Int("pagesize", 10, "默认分页大小")
+	configIDToGet := flag.String("get-config-id", "default", "要获取的配置ID (用于 GetConfig 示例)")
+	configIDToSend := flag.String("send-config-id", "default", "发送邮件时使用的配置ID (用于 SendEmail 示例)")
+	testEmailRecipient := flag.String("to", "test@example.com", "测试邮件接收者")
+	debugMode := flag.Bool("debug", false, "是否启用调试日志") // 改为 -debug 标志和 debugMode 变量
 
-	// 创建统一的 EmailClient
-	emailClient, err := client.NewEmailClient(grpcAddress, requestTimeout, defaultPageSize)
+	flag.Parse() // 解析命令行标志
+
+	// 将秒转换为 time.Duration
+	requestTimeout := time.Duration(*requestTimeoutSec) * time.Second
+
+	fmt.Printf("连接到 gRPC 服务: %s, 超时: %s, 默认分页大小: %d, 调试模式: %t\n",
+		*grpcAddress, requestTimeout, *defaultPageSize, *debugMode) // 更新打印信息
+
+	// 创建统一的 EmailClient, 传递 debug 标志
+	emailClient, err := client.NewEmailClient(*grpcAddress, requestTimeout, int32(*defaultPageSize), *debugMode)
 	if err != nil {
 		log.Fatalf("无法创建 EmailClient: %v", err)
 	}
@@ -45,11 +57,11 @@ func main() {
 
 	// 使用 emailService 调用邮件服务方法 (示例)
 	sendReq := &email_client_pb.SendEmailRequest{
-		ConfigId: "default", // 使用的邮件配置ID
+		ConfigId: *configIDToSend, // 使用的邮件配置ID
 		Email: &email_client_pb.Email{ // 嵌套的 Email 消息
 			Title:   "来自 Go SDK 的测试邮件",                       // 邮件标题 (title -> Title)
 			Content: []byte("这是一封通过统一 EmailClient 发送的测试邮件。"), // 邮件内容 (content -> Content, type bytes)
-			To:      []string{"test@example.com"},            // 收件人列表 (to -> To)
+			To:      []string{*testEmailRecipient},           // 收件人列表 (to -> To)
 			// From: "sender@example.com", // 可选：发件人 (from -> From)
 		},
 	}
@@ -81,4 +93,37 @@ func main() {
 		// }
 	}
 
+	// 3. 示例: 获取单个配置
+	fmt.Println("\n3. 示例: 获取单个配置")
+	if *configIDToGet != "" {
+		getReq := &email_client_pb.GetConfigRequest{
+			Id: *configIDToGet, // 使用命令行指定的配置ID
+		}
+		fmt.Printf("尝试获取配置请求: %+v\n", getReq)
+		getResp, err := configService.GetConfig(ctx, getReq)
+		if err != nil {
+			log.Printf("获取配置 '%s' 失败: %v\n", *configIDToGet, err)
+		} else if getResp.Success {
+			fmt.Printf("获取配置 '%s' 成功:\n", *configIDToGet)
+			fmt.Printf("  ID: %s\n", getResp.Config.Id)
+			fmt.Printf("  名称: %s\n", getResp.Config.Name)
+			fmt.Printf("  服务器: %s:%d\n", getResp.Config.Server, getResp.Config.Port)
+			fmt.Printf("  协议: %s\n", getResp.Config.Protocol)
+			fmt.Printf("  用户名: %s\n", getResp.Config.Username)
+			fmt.Printf("  使用SSL: %t\n", getResp.Config.UseSsl)
+			// 注意: 时间戳需要检查是否为 nil
+			if getResp.Config.CreatedAt != nil {
+				fmt.Printf("  创建时间: %s\n", getResp.Config.CreatedAt.AsTime().Local())
+			}
+			if getResp.Config.UpdatedAt != nil {
+				fmt.Printf("  更新时间: %s\n", getResp.Config.UpdatedAt.AsTime().Local())
+			}
+		} else {
+			fmt.Printf("获取配置 '%s' 失败: %s\n", *configIDToGet, getResp.Message)
+		}
+	} else {
+		fmt.Println("未指定 -get-config-id, 跳过 GetConfig 示例。")
+	}
+
+	fmt.Println("\n--- 示例调用结束 ---")
 }
