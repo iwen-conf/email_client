@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/connectivity"
+	"log"
 	"time"
+
+	"google.golang.org/grpc/connectivity"
 
 	"github.com/iwen-conf/email_client/proto/email_client_pb" // 确保这个导入路径在你的 go.mod 中是正确的
 	"google.golang.org/grpc"
@@ -27,37 +29,54 @@ type EmailServiceClient struct {
 // 使用 grpc.DialContext 建立连接，并默认阻塞直到连接成功或超时。
 func NewEmailServiceClient(grpcAddress string, requestTimeout time.Duration, defaultPageSize int32) (*EmailServiceClient, error) {
 	if grpcAddress == "" {
+		log.Println("[ERROR] NewEmailServiceClient: gRPC 服务地址不能为空")
 		return nil, fmt.Errorf("gRPC 服务地址不能为空")
 	}
 
-	// 建立 gRPC 连接，使用 DialContext
+	log.Printf("[INFO] NewEmailServiceClient: 正在尝试连接邮件服务: %s", grpcAddress)
+
+	// 建立 gRPC 连接
 	conn, err := grpc.NewClient(grpcAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
+		log.Printf("[ERROR] NewEmailServiceClient: 连接邮件服务失败 (%s): %v", grpcAddress, err)
 		return nil, fmt.Errorf("连接邮件服务失败 (%s): %w", grpcAddress, err)
 	}
-	// 主动连接
+
+	// 主动连接并等待 Ready 状态
 	conn.Connect()
-	// 设置连接超时
+	log.Printf("[INFO] NewEmailServiceClient: 正在等待连接变为 Ready 状态 (%s)...", grpcAddress)
+	// 使用包级别的 defaultConnectTimeout
 	ctx, cancel := context.WithTimeout(context.Background(), defaultConnectTimeout)
 	defer cancel()
 
 	for {
 		state := conn.GetState()
 		if state == connectivity.Ready {
+			log.Printf("[INFO] NewEmailServiceClient: 成功连接到邮件服务 (%s)", grpcAddress)
 			break // 成功连接
 		}
 		if !conn.WaitForStateChange(ctx, state) {
-			return nil, fmt.Errorf("等待连接状态变化超时或被取消")
+			conn.Close() // 关闭尝试失败的连接
+			errMsg := fmt.Sprintf("等待邮件服务连接状态变化超时或被取消 (%s)", grpcAddress)
+			log.Printf("[ERROR] NewEmailServiceClient: %s", errMsg)
+			return nil, fmt.Errorf(errMsg)
 		}
+		currentState := conn.GetState()
+		log.Printf("[DEBUG] NewEmailServiceClient: 连接状态变化 (%s): %v -> %v", grpcAddress, state, currentState)
 		// 检查是否已经进入失败状态
-		if conn.GetState() == connectivity.TransientFailure || conn.GetState() == connectivity.Shutdown {
-			return nil, fmt.Errorf("连接失败，当前状态: %v", conn.GetState())
+		if currentState == connectivity.TransientFailure || currentState == connectivity.Shutdown {
+			conn.Close() // 关闭尝试失败的连接
+			errMsg := fmt.Sprintf("邮件服务连接失败，当前状态: %v (%s)", currentState, grpcAddress)
+			log.Printf("[ERROR] NewEmailServiceClient: %s", errMsg)
+			return nil, fmt.Errorf(errMsg)
 		}
 	}
+
 	// 创建 EmailServiceClient 存根
 	grpcClient := email_client_pb.NewEmailServiceClient(conn)
+	log.Printf("[INFO] NewEmailServiceClient: 已创建 EmailService 客户端 (%s)", grpcAddress)
 
 	return &EmailServiceClient{
 		client:          grpcClient,
@@ -70,8 +89,12 @@ func NewEmailServiceClient(grpcAddress string, requestTimeout time.Duration, def
 // Close 关闭与邮件服务的 gRPC 连接。
 func (c *EmailServiceClient) Close() error {
 	if c.conn != nil {
+		// 只有独立的 EmailServiceClient 才关闭连接
+		// 如果是通过 EmailClient 创建的，conn 会被 EmailClient.Close() 设为 nil
+		log.Printf("[INFO] EmailServiceClient.Close: 正在关闭邮件服务连接: %s", c.conn.Target())
 		return c.conn.Close()
 	}
+	log.Println("[INFO] EmailServiceClient.Close: 连接已关闭或由 EmailClient 管理，无需操作")
 	return nil
 }
 
