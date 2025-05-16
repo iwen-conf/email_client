@@ -5,6 +5,10 @@
 ## 主要特性
 
 - **统一连接管理**：使用单个连接同时访问邮件服务和配置服务
+- **连接池管理**：高效管理多个 gRPC 连接，提升并发性能
+- **结构化日志**：支持不同日志级别、格式和输出方式的日志系统
+- **速率限制**：基于令牌桶算法的API访问速率限制
+- **TLS安全连接**：支持证书验证和加密传输
 - **健康检查**：自动检测连接健康状态并进行自动重连
 - **请求重试机制**：支持可配置的失败重试策略
 - **断路器模式**：防止系统雪崩，自动中断连接到不健康的服务
@@ -66,6 +70,23 @@ options = append(options, client.WithRetryConfig(client.RetryConfig{
     MaxRetries:  3,
     RetryDelay:  500*time.Millisecond,
     RetryPolicy: client.ExponentialBackoff,
+}))
+
+// 配置速率限制
+options = append(options, client.WithRateLimiterConfig(client.RateLimiterConfig{
+    RequestsPerSecond: 20.0,  // 每秒最大请求数
+    MaxBurst:          30.0,  // 最大突发请求数
+    WaitTimeout:       100*time.Millisecond, // 等待令牌的超时时间
+}))
+
+// 配置TLS安全连接
+options = append(options, client.WithTLSConfig(client.TLSConfig{
+    Enabled:            true,                // 启用TLS
+    ServerName:         "email.example.com", // 服务器名称
+    CertFile:           "/path/to/cert.pem", // 客户端证书
+    KeyFile:            "/path/to/key.pem",  // 客户端密钥
+    CAFile:             "/path/to/ca.pem",   // CA证书
+    InsecureSkipVerify: false,               // 是否跳过证书验证
 }))
 
 // 创建带选项的客户端
@@ -137,6 +158,170 @@ configs, err := emailClient.ConfigService().ListConfigs(ctx, listReq)
 
 ## 高级功能说明
 
+### TLS安全连接
+
+使用TLS加密可保护通信安全，支持证书验证和加密传输。
+
+```go
+import (
+    "github.com/iwen-conf/email_client/client/conn"
+)
+
+// 创建自定义TLS配置
+tlsConfig := conn.TLSConfig{
+    Enabled:            true,                // 启用TLS
+    ServerName:         "email.example.com", // 用于证书验证的服务器名称
+    CertFile:           "/path/to/cert.pem", // 客户端证书文件路径
+    KeyFile:            "/path/to/key.pem",  // 客户端密钥文件路径
+    CAFile:             "/path/to/ca.pem",   // CA证书文件路径
+    InsecureSkipVerify: false,               // 是否跳过证书验证(不推荐在生产环境中设为true)
+}
+
+// 使用TLS配置创建连接管理器
+manager, err := conn.NewManager("localhost:50051", 10*time.Second, true, 
+    conn.WithTLS(tlsConfig),
+    conn.WithHealthCheck(true, 30*time.Second),
+)
+if err != nil {
+    panic(err)
+}
+defer manager.Close()
+
+// 使用连接发起请求
+// ...
+
+// 动态更新TLS配置
+newTLSConfig := conn.TLSConfig{
+    Enabled:            true,
+    ServerName:         "new.example.com",
+    InsecureSkipVerify: false,
+}
+manager.UpdateTLSConfig(newTLSConfig)
+
+// 重新连接以应用新配置
+ctx := context.Background()
+if err := manager.Reconnect(ctx, ""); err != nil {
+    // 处理错误
+}
+```
+
+### 连接池管理
+
+连接池可以高效管理多个gRPC连接，提高并发性能和资源利用率。
+
+```go
+import (
+    "github.com/iwen-conf/email_client/client/conn"
+)
+
+// 创建自定义连接池配置
+poolConfig := conn.DefaultPoolConfig()
+poolConfig.InitialSize = 5
+poolConfig.MaxSize = 20
+poolConfig.MinIdle = 2
+poolConfig.MaxIdle = 10*time.Minute
+poolConfig.HealthCheckInterval = 60*time.Second
+
+// 创建连接工厂函数
+factory := func() (*grpc.ClientConn, error) {
+    return grpc.NewClient("localhost:50051",
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+    )
+}
+
+// 创建连接池
+pool, err := conn.NewConnectionPool("localhost:50051", factory, poolConfig)
+if err != nil {
+    panic(err)
+}
+defer pool.Close()
+
+// 从连接池获取连接
+ctx := context.Background()
+connection, err := pool.Get(ctx)
+if err != nil {
+    panic(err)
+}
+defer connection.Release() // 使用完后释放回连接池
+```
+
+### 结构化日志
+
+客户端内置了结构化日志系统，支持不同级别、格式和输出方式。
+
+```go
+import (
+    "os"
+    "github.com/iwen-conf/email_client/client/logger"
+)
+
+// 创建日志记录器
+log := logger.NewStandardLogger()
+
+// 设置日志级别
+log.SetLevel(logger.InfoLevel)
+
+// 设置日志输出到文件
+file, _ := os.OpenFile("email_client.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+log.SetOutput(file)
+
+// 使用JSON格式
+log.SetFormatter(&logger.JSONFormatter{TimeFormat: time.RFC3339})
+
+// 使用日志
+log.Info("客户端初始化成功")
+log.WithField("grpc_address", "localhost:50051").Info("连接服务器")
+log.WithRequestID("req-123").WithField("user", "admin").Info("处理请求")
+
+// 条件日志
+if log.GetLevel() <= logger.DebugLevel {
+    // 只有在调试级别时才会执行这些昂贵的操作
+    log.Debug("详细调试信息")
+}
+
+// 带错误信息的日志
+err := someOperation()
+if err != nil {
+    log.WithError(err).Error("操作失败")
+}
+```
+
+### 速率限制
+
+速率限制器可防止API过度使用，保护服务器资源并确保公平访问。
+
+```go
+import (
+    "context"
+    "github.com/iwen-conf/email_client/client/middleware"
+)
+
+// 创建速率限制器
+config := client.DefaultRateLimiterConfig()
+config.RequestsPerSecond = 50.0  // 每秒50个请求
+config.MaxBurst = 100.0          // 最大突发请求数
+config.WaitTimeout = 200*time.Millisecond  // 等待超时时间
+
+rateLimiter := client.NewRateLimiter(config, true)
+
+// 在执行请求前检查速率限制
+ctx := context.Background()
+err := rateLimiter.Wait(ctx)
+if err != nil {
+    // 处理速率限制错误
+    if limitErr, ok := err.(*client.RateLimitExceededError); ok {
+        log.Printf("速率限制超出: %.2f 请求/秒, %s", limitErr.RequestsPerSecond, limitErr.Message)
+        return
+    }
+}
+
+// 正常执行请求
+// ...
+
+// 动态调整速率限制
+rateLimiter.SetRate(100.0)  // 提高限制到每秒100请求
+```
+
 ### 健康检查
 
 健康检查系统会定期检查与服务器的连接状态，并在连接断开时自动重连。
@@ -191,11 +376,16 @@ options = append(options, client.DisableCircuitBreaker())
     - **config_service.go**: 配置服务客户端
   - **conn/**: 连接管理
     - **manager.go**: 连接管理器
+    - **pool.go**: 连接池实现
     - **health.go**: 健康检查实现
+    - **tls.go**: TLS安全连接实现
   - **middleware/**: 中间件功能
     - **circuit_breaker.go**: 断路器实现
     - **retry.go**: 重试机制实现
     - **metrics.go**: 性能指标收集
+    - **rate_limiter.go**: 速率限制实现
+  - **logger/**: 日志系统
+    - **logger.go**: 结构化日志实现
 - **proto/**: 协议缓冲区定义和生成的代码
 - **main.go**: 版本信息
 

@@ -3,6 +3,7 @@ package core
 import (
 	"time"
 
+	"github.com/iwen-conf/email_client/client/conn"
 	"github.com/iwen-conf/email_client/client/middleware"
 )
 
@@ -29,6 +30,16 @@ type clientOptions struct {
 	failureThreshold     int           // 故障阈值
 	circuitResetTimeout  time.Duration // 断路器重置超时
 	halfOpenMaxRequests  int           // 半开状态最大请求数
+
+	// 速率限制相关选项
+	enableRateLimiter      bool          // 是否启用速率限制
+	requestsPerSecond      float64       // 每秒请求数
+	maxBurst               float64       // 最大突发请求数
+	rateLimiterWaitTimeout time.Duration // 等待令牌的超时时间
+
+	// TLS相关选项
+	enableTLS bool           // 是否启用TLS
+	tlsConfig conn.TLSConfig // TLS配置
 }
 
 // 默认选项
@@ -48,6 +59,14 @@ var defaultOptions = clientOptions{
 	failureThreshold:     5,
 	circuitResetTimeout:  10 * time.Second,
 	halfOpenMaxRequests:  1,
+
+	enableRateLimiter:      false,
+	requestsPerSecond:      10.0,
+	maxBurst:               20.0,
+	rateLimiterWaitTimeout: 0,
+
+	enableTLS: false,
+	tlsConfig: conn.DefaultTLSConfig(),
 }
 
 // WithConnectionConfig 设置连接相关配置
@@ -136,6 +155,38 @@ var DefaultCircuitBreakerConfig = CircuitBreakerConfig{
 	FailureThreshold:    5,
 	ResetTimeout:        10 * time.Second,
 	HalfOpenMaxRequests: 1,
+}
+
+// WithRateLimiterConfig 设置速率限制相关配置
+func WithRateLimiterConfig(config middleware.RateLimiterConfig) Option {
+	return func(opts *clientOptions) {
+		opts.enableRateLimiter = true
+		opts.requestsPerSecond = config.RequestsPerSecond
+		opts.maxBurst = config.MaxBurst
+		opts.rateLimiterWaitTimeout = config.WaitTimeout
+	}
+}
+
+// DisableRateLimiter 禁用速率限制
+func DisableRateLimiter() Option {
+	return func(opts *clientOptions) {
+		opts.enableRateLimiter = false
+	}
+}
+
+// WithTLSConfig 设置TLS相关配置
+func WithTLSConfig(config conn.TLSConfig) Option {
+	return func(opts *clientOptions) {
+		opts.enableTLS = true
+		opts.tlsConfig = config
+	}
+}
+
+// DisableTLS 禁用TLS
+func DisableTLS() Option {
+	return func(opts *clientOptions) {
+		opts.enableTLS = false
+	}
 }
 
 // EnableHealthCheck 启用健康检查

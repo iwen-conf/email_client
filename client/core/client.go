@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -35,8 +36,21 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 		log.Printf("[INFO] NewEmailClient: 正在尝试连接统一 gRPC 服务: %s", grpcAddress)
 	}
 
+	// 创建连接管理器选项
+	managerOpts := []conn.ManagerOption{
+		conn.WithHealthCheck(options.enableHealthCheck, options.healthCheckInterval),
+	}
+
+	// 添加TLS选项
+	if options.enableTLS {
+		managerOpts = append(managerOpts, conn.WithTLS(options.tlsConfig))
+		if debug {
+			log.Printf("[INFO] NewEmailClient: 启用TLS安全连接")
+		}
+	}
+
 	// 创建连接管理器
-	connManager, err := conn.NewManager(grpcAddress, options.minConnectTimeout, debug, conn.WithHealthCheck(options.enableHealthCheck, options.healthCheckInterval))
+	connManager, err := conn.NewManager(grpcAddress, options.minConnectTimeout, debug, managerOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,4 +114,16 @@ func (c *EmailClient) SetDefaultPageSize(size int32) {
 // GetConnManager 返回底层的连接管理器
 func (c *EmailClient) GetConnManager() *conn.Manager {
 	return c.connManager
+}
+
+// UpdateTLSConfig 更新TLS配置并重新连接
+func (c *EmailClient) UpdateTLSConfig(config conn.TLSConfig) error {
+	manager := c.GetConnManager()
+	manager.UpdateTLSConfig(config)
+
+	// 重新连接以应用新配置
+	ctx, cancel := context.WithTimeout(context.Background(), c.requestTimeout)
+	defer cancel()
+
+	return manager.Reconnect(ctx, "")
 }

@@ -4,6 +4,7 @@ package client
 import (
 	"time"
 
+	"github.com/iwen-conf/email_client/client/conn"
 	"github.com/iwen-conf/email_client/client/core"
 	"github.com/iwen-conf/email_client/client/middleware"
 )
@@ -24,6 +25,15 @@ type (
 
 	// CircuitBreakerConfig 定义断路器配置参数
 	CircuitBreakerConfig = core.CircuitBreakerConfig
+
+	// RateLimiterConfig 定义速率限制配置参数
+	RateLimiterConfig = middleware.RateLimiterConfig
+
+	// RateLimitExceededError 表示速率限制异常
+	RateLimitExceededError = middleware.RateLimitExceededError
+
+	// TLSConfig 定义TLS配置参数
+	TLSConfig = conn.TLSConfig
 )
 
 // 导出常用变量和函数
@@ -37,6 +47,12 @@ var (
 	// DefaultCircuitBreakerConfig 提供默认断路器配置
 	DefaultCircuitBreakerConfig = core.DefaultCircuitBreakerConfig
 
+	// DefaultRateLimiterConfig 提供默认速率限制配置
+	DefaultRateLimiterConfig = middleware.DefaultRateLimiterConfig
+
+	// DefaultTLSConfig 提供默认TLS配置
+	DefaultTLSConfig = conn.DefaultTLSConfig
+
 	// ExponentialBackoff 实现指数退避重试策略
 	ExponentialBackoff = middleware.ExponentialBackoff
 
@@ -49,8 +65,20 @@ var (
 	// WithCircuitBreakerConfig 设置断路器相关配置
 	WithCircuitBreakerConfig = core.WithCircuitBreakerConfig
 
+	// WithRateLimiterConfig 设置速率限制相关配置
+	WithRateLimiterConfig = core.WithRateLimiterConfig
+
+	// WithTLSConfig 设置TLS相关配置
+	WithTLSConfig = core.WithTLSConfig
+
 	// DisableCircuitBreaker 禁用断路器
 	DisableCircuitBreaker = core.DisableCircuitBreaker
+
+	// DisableRateLimiter 禁用速率限制
+	DisableRateLimiter = core.DisableRateLimiter
+
+	// DisableTLS 禁用TLS
+	DisableTLS = core.DisableTLS
 
 	// EnableHealthCheck 启用健康检查
 	EnableHealthCheck = core.EnableHealthCheck
@@ -76,6 +104,15 @@ func NewCircuitBreaker(config CircuitBreakerConfig, debug bool) *middleware.Circ
 		FailureThreshold:    config.FailureThreshold,
 		ResetTimeout:        config.ResetTimeout,
 		HalfOpenMaxRequests: config.HalfOpenMaxRequests,
+	}, debug)
+}
+
+// NewRateLimiter 创建一个新的速率限制器
+func NewRateLimiter(config RateLimiterConfig, debug bool) *middleware.RateLimiter {
+	return middleware.NewRateLimiter(middleware.RateLimiterConfig{
+		RequestsPerSecond: config.RequestsPerSecond,
+		MaxBurst:          config.MaxBurst,
+		WaitTimeout:       config.WaitTimeout,
 	}, debug)
 }
 

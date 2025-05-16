@@ -20,6 +20,7 @@ type Manager struct {
 	healthChecker   *HealthChecker
 	healthCheckLock sync.Mutex
 	debug           bool
+	tlsConfig       TLSConfig
 }
 
 // ManagerOption 定义连接管理器配置选项
@@ -34,6 +35,13 @@ func WithHealthCheck(enabled bool, interval time.Duration) ManagerOption {
 	}
 }
 
+// WithTLS 配置TLS选项
+func WithTLS(config TLSConfig) ManagerOption {
+	return func(m *Manager) {
+		m.tlsConfig = config
+	}
+}
+
 // NewManager 创建新的连接管理器
 func NewManager(target string, timeout time.Duration, debug bool, opts ...ManagerOption) (*Manager, error) {
 	if target == "" {
@@ -41,8 +49,14 @@ func NewManager(target string, timeout time.Duration, debug bool, opts ...Manage
 	}
 
 	m := &Manager{
-		target: target,
-		debug:  debug,
+		target:    target,
+		debug:     debug,
+		tlsConfig: DefaultTLSConfig(), // 默认禁用TLS
+	}
+
+	// 应用选项
+	for _, opt := range opts {
+		opt(m)
 	}
 
 	// 建立连接
@@ -53,11 +67,6 @@ func NewManager(target string, timeout time.Duration, debug bool, opts ...Manage
 		return nil, err
 	}
 
-	// 应用选项
-	for _, opt := range opts {
-		opt(m)
-	}
-
 	return m, nil
 }
 
@@ -66,10 +75,29 @@ func (m *Manager) connect(ctx context.Context) error {
 	m.connectionMutex.Lock()
 	defer m.connectionMutex.Unlock()
 
+	var opts []grpc.DialOption
+
+	// 添加TLS选项
+	if m.tlsConfig.Enabled {
+		tlsOpt, err := CreateTLSDialOption(m.tlsConfig)
+		if err != nil {
+			log.Printf("[ERROR] Manager.connect: 创建TLS选项失败: %v", err)
+			return fmt.Errorf("创建TLS选项失败: %w", err)
+		}
+		opts = append(opts, tlsOpt)
+		if m.debug {
+			log.Printf("[INFO] Manager.connect: 使用TLS连接到 %s", m.target)
+		}
+	} else {
+		// 不使用TLS时，使用不安全的凭据
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if m.debug {
+			log.Printf("[INFO] Manager.connect: 使用不安全连接到 %s", m.target)
+		}
+	}
+
 	// 使用最新的gRPC连接语法
-	conn, err := grpc.NewClient(m.target,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	conn, err := grpc.NewClient(m.target, opts...)
 	if err != nil {
 		log.Printf("[ERROR] Manager.connect: 连接 gRPC 服务失败 (%s): %v", m.target, err)
 		return fmt.Errorf("连接 gRPC 服务失败 (%s): %w", m.target, err)
@@ -91,7 +119,10 @@ func (m *Manager) connect(ctx context.Context) error {
 			break // 成功连接
 		}
 		if !conn.WaitForStateChange(ctx, state) {
-			conn.Close()
+			err = conn.Close()
+			if err != nil {
+				return err
+			}
 			errMsg := fmt.Sprintf("等待连接状态变化超时或被取消 (%s)", m.target)
 			log.Printf("[ERROR] Manager.connect: %s", errMsg)
 			return fmt.Errorf("%s", errMsg)
@@ -101,7 +132,10 @@ func (m *Manager) connect(ctx context.Context) error {
 			log.Printf("[DEBUG] Manager.connect: 连接状态变化 (%s): %v -> %v", m.target, state, currentState)
 		}
 		if currentState == connectivity.TransientFailure || currentState == connectivity.Shutdown {
-			conn.Close()
+			err = conn.Close()
+			if err != nil {
+				return err
+			}
 			errMsg := fmt.Sprintf("连接失败，当前状态: %v (%s)", currentState, m.target)
 			log.Printf("[ERROR] Manager.connect: %s", errMsg)
 			return fmt.Errorf("%s", errMsg)
@@ -121,7 +155,10 @@ func (m *Manager) Reconnect(ctx context.Context, target string) error {
 
 	// 关闭旧连接
 	if m.conn != nil {
-		m.conn.Close()
+		err := m.conn.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return m.connect(ctx)
@@ -181,4 +218,20 @@ func (m *Manager) stopHealthCheck() {
 		m.healthChecker.Stop()
 		m.healthChecker = nil
 	}
+}
+
+// UpdateTLSConfig 更新TLS配置
+func (m *Manager) UpdateTLSConfig(config TLSConfig) {
+	m.connectionMutex.Lock()
+	defer m.connectionMutex.Unlock()
+
+	m.tlsConfig = config
+}
+
+// GetTLSConfig 获取当前TLS配置
+func (m *Manager) GetTLSConfig() TLSConfig {
+	m.connectionMutex.Lock()
+	defer m.connectionMutex.Unlock()
+
+	return m.tlsConfig
 }
