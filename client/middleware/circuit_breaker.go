@@ -1,4 +1,4 @@
-package client
+package middleware
 
 import (
 	"fmt"
@@ -44,6 +44,13 @@ type CircuitBreaker struct {
 	openStateListeners  []func()      // 断路器打开时的回调函数
 	closeStateListeners []func()      // 断路器关闭时的回调函数
 	debug               bool          // 是否启用调试日志
+}
+
+// CircuitBreakerConfig 定义断路器配置参数
+type CircuitBreakerConfig struct {
+	FailureThreshold    int           // 连续失败次数阈值
+	ResetTimeout        time.Duration // 断路器从开到半开的重置时间
+	HalfOpenMaxRequests int           // 半开状态下允许的最大请求数
 }
 
 // NewCircuitBreaker 创建一个新的断路器

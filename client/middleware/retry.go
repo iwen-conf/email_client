@@ -1,4 +1,4 @@
-package client
+package middleware
 
 import (
 	"context"
@@ -13,6 +13,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// RetryPolicy 定义重试策略函数类型
+type RetryPolicy func(attempt int) time.Duration
+
+// ExponentialBackoff 实现指数退避重试策略
+func ExponentialBackoff(attempt int) time.Duration {
+	return time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
+}
+
 // 定义可重试的错误类型
 var retryableCodes = map[codes.Code]bool{
 	codes.Unavailable:       true, // 服务不可用
@@ -20,6 +28,13 @@ var retryableCodes = map[codes.Code]bool{
 	codes.ResourceExhausted: true, // 资源耗尽
 	codes.Aborted:           true, // 操作被终止
 	codes.Internal:          true, // 内部服务器错误
+}
+
+// RetryConfig 定义重试配置参数
+type RetryConfig struct {
+	MaxRetries  int           // 最大重试次数
+	RetryDelay  time.Duration // 重试延迟
+	RetryPolicy RetryPolicy   // 重试策略函数
 }
 
 // WithRetryAndMetrics 创建一个带有重试和指标收集的一元 gRPC 拦截器

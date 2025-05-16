@@ -1,7 +1,9 @@
-package client
+package core
 
 import (
 	"time"
+
+	"github.com/iwen-conf/email_client/client/middleware"
 )
 
 // Option 定义客户端配置选项的函数类型
@@ -18,9 +20,9 @@ type clientOptions struct {
 	healthCheckInterval time.Duration // 健康检查间隔
 
 	// 重试相关选项
-	maxRetries  int           // 最大重试次数
-	retryDelay  time.Duration // 重试延迟
-	retryPolicy RetryPolicy   // 重试策略
+	maxRetries  int                    // 最大重试次数
+	retryDelay  time.Duration          // 重试延迟
+	retryPolicy middleware.RetryPolicy // 重试策略
 
 	// 断路器相关选项
 	enableCircuitBreaker bool          // 是否启用断路器
@@ -28,9 +30,6 @@ type clientOptions struct {
 	circuitResetTimeout  time.Duration // 断路器重置超时
 	halfOpenMaxRequests  int           // 半开状态最大请求数
 }
-
-// RetryPolicy 定义重试策略函数类型
-type RetryPolicy func(attempt int) time.Duration
 
 // 默认选项
 var defaultOptions = clientOptions{
@@ -43,7 +42,7 @@ var defaultOptions = clientOptions{
 
 	maxRetries:  3,
 	retryDelay:  500 * time.Millisecond,
-	retryPolicy: ExponentialBackoff,
+	retryPolicy: middleware.ExponentialBackoff,
 
 	enableCircuitBreaker: false,
 	failureThreshold:     5,
@@ -96,21 +95,16 @@ func WithRetryConfig(config RetryConfig) Option {
 
 // RetryConfig 定义重试配置参数
 type RetryConfig struct {
-	MaxRetries  int           // 最大重试次数
-	RetryDelay  time.Duration // 重试延迟
-	RetryPolicy RetryPolicy   // 重试策略函数
+	MaxRetries  int                    // 最大重试次数
+	RetryDelay  time.Duration          // 重试延迟
+	RetryPolicy middleware.RetryPolicy // 重试策略函数
 }
 
 // DefaultRetryConfig 提供默认重试配置
 var DefaultRetryConfig = RetryConfig{
 	MaxRetries:  3,
 	RetryDelay:  500 * time.Millisecond,
-	RetryPolicy: ExponentialBackoff,
-}
-
-// ExponentialBackoff 实现指数退避重试策略
-func ExponentialBackoff(attempt int) time.Duration {
-	return time.Duration(1<<uint(attempt)) * 100 * time.Millisecond
+	RetryPolicy: middleware.ExponentialBackoff,
 }
 
 // WithCircuitBreakerConfig 设置断路器相关配置

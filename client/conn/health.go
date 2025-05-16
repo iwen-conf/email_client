@@ -1,4 +1,4 @@
-package client
+package conn
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 // HealthChecker 提供连接健康检查和自动重连功能
 type HealthChecker struct {
-	client      *EmailClient
+	manager     *Manager
 	stopChan    chan struct{}
 	interval    time.Duration
 	mutex       sync.RWMutex
@@ -21,13 +21,13 @@ type HealthChecker struct {
 }
 
 // NewHealthChecker 创建新的健康检查器
-func NewHealthChecker(client *EmailClient, interval time.Duration, debug bool) *HealthChecker {
+func NewHealthChecker(manager *Manager, interval time.Duration, debug bool) *HealthChecker {
 	if interval <= 0 {
 		interval = 30 * time.Second // 默认30秒检查一次
 	}
 
 	return &HealthChecker{
-		client:   client,
+		manager:  manager,
 		interval: interval,
 		stopChan: make(chan struct{}),
 		debug:    debug,
@@ -92,11 +92,11 @@ func (h *HealthChecker) run() {
 
 // checkHealth 检查连接健康状态并在必要时进行重连
 func (h *HealthChecker) checkHealth() {
-	if h.client == nil || h.client.conn == nil {
+	if h.manager == nil {
 		return
 	}
 
-	state := h.client.conn.GetState()
+	state := h.manager.GetState()
 	if h.debug {
 		log.Printf("[DEBUG] HealthChecker: 当前连接状态: %v", state)
 	}
@@ -112,40 +112,19 @@ func (h *HealthChecker) checkHealth() {
 
 // reconnect 重新建立连接
 func (h *HealthChecker) reconnect() {
-	if h.client == nil {
-		return
-	}
-
-	// 记录旧连接的目标地址，用于重连
-	var target string
-	if h.client.conn != nil {
-		target = h.client.conn.Target()
-	}
-
-	if target == "" {
-		if h.debug {
-			log.Printf("[ERROR] HealthChecker: 无法重连，目标地址为空")
-		}
+	if h.manager == nil {
 		return
 	}
 
 	if h.debug {
-		log.Printf("[INFO] HealthChecker: 正在尝试重连到 %s", target)
+		log.Printf("[INFO] HealthChecker: 正在尝试重连到 %s", h.manager.target)
 	}
 
 	// 尝试重新连接
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	// 连接已断开，先尝试关闭旧连接
-	if h.client.conn != nil {
-		h.client.conn.Close()
-	}
-
-	// 这里不能直接创建新的 EmailClient，因为我们需要保持已有的实例不变
-	// 所以直接尝试重新建立 gRPC 连接
-	// 注意：这里需要修改 EmailClient 结构，添加一个 reconnect 方法
-	if err := h.client.reconnect(ctx, target); err != nil {
+	if err := h.manager.Reconnect(ctx, ""); err != nil {
 		if h.debug {
 			log.Printf("[ERROR] HealthChecker: 重连失败: %v", err)
 		}

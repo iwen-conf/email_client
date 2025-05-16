@@ -1,6 +1,6 @@
 # gRPC Email Client
 
-一个功能齐全的 gRPC 邮件客户端库，为邮件服务和配置服务提供高级接口。
+一个功能齐全的 gRPC 邮件客户端库，为邮件服务和配置服务提供高级接口。作为外部库导入使用，当前版本 v0.0.1。
 
 ## 主要特性
 
@@ -10,6 +10,7 @@
 - **断路器模式**：防止系统雪崩，自动中断连接到不健康的服务
 - **性能指标收集**：监控请求执行情况和性能指标
 - **选项模式配置**：灵活的客户端配置系统
+- **模块化架构**：清晰的职责分离，便于维护和扩展
 
 ## 安装
 
@@ -92,7 +93,6 @@ emails, err := emailClient.EmailService().GetSentEmails(ctx, req)
 if err != nil {
     // 处理错误
 }
-// 使用 emails...
 
 // 发送邮件
 email := &email_client_pb.Email{
@@ -133,24 +133,6 @@ listReq := &email_client_pb.ListConfigsRequest{
     PageSize: 20,
 }
 configs, err := emailClient.ConfigService().ListConfigs(ctx, listReq)
-```
-
-## 命令行工具
-
-项目包含一个简单的命令行工具，可以用来测试连接和执行基本操作：
-
-```bash
-# 连接到指定服务器并启用调试日志
-go run main.go --server=localhost:50051 --debug=true
-
-# 启用健康检查和断路器
-go run main.go --health=30s --circuit=true --failures=5 --reset=10s
-
-# 列出所有配置
-go run main.go --list-configs
-
-# 列出所有发送的邮件
-go run main.go --list-emails
 ```
 
 ## 高级功能说明
@@ -198,17 +180,39 @@ options = append(options, client.DisableCircuitBreaker())
 
 ## 项目结构
 
-- **client/**: 核心客户端库
-  - **client.go**: 主客户端实现
-  - **email_service.go**: 邮件服务客户端
-  - **config_service.go**: 配置服务客户端
-  - **health.go**: 健康检查实现
-  - **retry.go**: 重试机制实现
-  - **circuit_breaker.go**: 断路器实现
-  - **metrics.go**: 性能指标收集
-  - **options.go**: 客户端选项系统
+- **client/**: 客户端包
+  - **entry.go**: 包入口点，重新导出API保持兼容性
+  - **core/**: 核心客户端功能
+    - **client.go**: 主客户端实现
+    - **options.go**: 客户端选项系统
+    - **errors.go**: 错误定义
+  - **services/**: 服务客户端实现
+    - **email_service.go**: 邮件服务客户端
+    - **config_service.go**: 配置服务客户端
+  - **conn/**: 连接管理
+    - **manager.go**: 连接管理器
+    - **health.go**: 健康检查实现
+  - **middleware/**: 中间件功能
+    - **circuit_breaker.go**: 断路器实现
+    - **retry.go**: 重试机制实现
+    - **metrics.go**: 性能指标收集
 - **proto/**: 协议缓冲区定义和生成的代码
-- **main.go**: 命令行工具实现
+- **main.go**: 版本信息
+
+## 设计理念
+
+客户端库采用模块化设计，各组件职责明确：
+
+- **core**: 负责核心配置和客户端API
+- **services**: 封装各种服务的API调用
+- **conn**: 专注于连接管理和健康监控
+- **middleware**: 提供横切关注点功能如重试、熔断等
+
+这种架构使得各组件可以独立维护和测试，同时通过entry.go统一导出API，对外保持简洁的接口。
+
+## 使用说明
+
+这个库作为外部依赖导入到你的项目中使用，不提供命令行功能。所有功能通过编程方式使用，详见上述示例。
 
 ## 贡献
 
