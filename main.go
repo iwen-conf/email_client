@@ -5,6 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/iwen-conf/email_client/client"
@@ -12,118 +15,163 @@ import (
 )
 
 func main() {
-	// --- 配置参数 ---
-	grpcAddress := flag.String("addr", "localhost:50051", "gRPC 服务地址")
-	requestTimeoutSec := flag.Int("timeout", 15, "默认请求超时时间 (秒)")
-	defaultPageSize := flag.Int("pagesize", 10, "默认分页大小")
-	configIDToGet := flag.String("get-config-id", "default", "要获取的配置ID (用于 GetConfig 示例)")
-	configIDToSend := flag.String("send-config-id", "default", "发送邮件时使用的配置ID (用于 SendEmail 示例)")
-	testEmailRecipient := flag.String("to", "test@example.com", "测试邮件接收者")
-	debugMode := flag.Bool("debug", false, "是否启用调试日志") // 改为 -debug 标志和 debugMode 变量
+	// 定义命令行参数
+	serverAddr := flag.String("server", "localhost:50051", "gRPC 服务器地址")
+	timeout := flag.Duration("timeout", 10*time.Second, "请求超时时间")
+	pageSize := flag.Int("pagesize", 20, "默认分页大小")
+	debug := flag.Bool("debug", false, "是否启用调试日志")
 
-	flag.Parse() // 解析命令行标志
+	// 断路器相关参数
+	enableCircuitBreaker := flag.Bool("circuit", false, "是否启用断路器")
+	failureThreshold := flag.Int("failures", 5, "断路器触发的失败阈值")
+	resetTimeout := flag.Duration("reset", 10*time.Second, "断路器重置时间")
 
-	// 将秒转换为 time.Duration
-	requestTimeout := time.Duration(*requestTimeoutSec) * time.Second
+	// 健康检查相关参数
+	healthCheckInterval := flag.Duration("health", 30*time.Second, "健康检查间隔，0表示禁用")
 
-	fmt.Printf("连接到 gRPC 服务: %s, 超时: %s, 默认分页大小: %d, 调试模式: %t\n",
-		*grpcAddress, requestTimeout, *defaultPageSize, *debugMode) // 更新打印信息
+	// 重试相关参数
+	maxRetries := flag.Int("retries", 3, "最大重试次数")
+	retryDelay := flag.Duration("retrydelay", 500*time.Millisecond, "重试延迟")
 
-	// 创建统一的 EmailClient, 传递 debug 标志
-	emailClient, err := client.NewEmailClient(*grpcAddress, requestTimeout, int32(*defaultPageSize), *debugMode)
-	if err != nil {
-		log.Fatalf("无法创建 EmailClient: %v", err)
-	}
-	defer emailClient.Close() // 确保关闭共享连接
+	// 执行操作标志
+	listConfigs := flag.Bool("list-configs", false, "列出所有邮件配置")
+	listEmails := flag.Bool("list-emails", false, "列出已发送的邮件")
 
-	fmt.Println("成功连接到 gRPC 服务!")
+	// 解析命令行参数
+	flag.Parse()
 
-	// --- 通过 EmailClient 获取各个服务的客户端实例 ---
-	emailService := emailClient.EmailService()
-	configService := emailClient.ConfigService()
+	fmt.Println("gRPC Email Client v0.1.0")
+	fmt.Printf("连接服务: %s\n", *serverAddr)
 
-	// 可以在这里分别使用 emailService 和 configService 调用方法
-	fmt.Printf("获取到的 Email Service 类型: %T\n", emailService)
-	fmt.Printf("获取到的 Config Service 类型: %T\n", configService)
+	// 准备客户端选项
+	var options []client.Option
 
-	// 获取底层 gRPC 客户端存根 (如果需要直接调用)
-	// pbEmailClient := emailService.GetClient()
-	// pbConfigClient := configService.GetClient()
-
-	// 调用示例 (需要替换为实际的 gRPC 方法和请求)
-	fmt.Println("\n--- 运行示例调用 ---")
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout) // 使用 EmailClient 配置的超时
-	defer cancel()
-
-	// 使用 emailService 调用邮件服务方法 (示例)
-	sendReq := &email_client_pb.SendEmailRequest{
-		ConfigId: *configIDToSend, // 使用的邮件配置ID
-		Email: &email_client_pb.Email{ // 嵌套的 Email 消息
-			Title:   "来自 Go SDK 的测试邮件",                       // 邮件标题 (title -> Title)
-			Content: []byte("这是一封通过统一 EmailClient 发送的测试邮件。"), // 邮件内容 (content -> Content, type bytes)
-			To:      []string{*testEmailRecipient},           // 收件人列表 (to -> To)
-			// From: "sender@example.com", // 可选：发件人 (from -> From)
-		},
-	}
-	fmt.Printf("尝试发送邮件: %+v\n", sendReq)
-	sendResp, err := emailService.SendEmail(ctx, sendReq)
-	if err != nil {
-		// 对于示例，我们只打印错误，不终止程序
-		log.Printf("发送邮件失败: %v\n", err)
+	// 配置健康检查
+	if *healthCheckInterval > 0 {
+		options = append(options, client.EnableHealthCheck(*healthCheckInterval))
+		fmt.Printf("已启用健康检查，间隔: %v\n", *healthCheckInterval)
 	} else {
-		fmt.Printf("发送邮件调用成功 (不代表邮件已发出): %v\n", sendResp)
+		options = append(options, client.DisableHealthCheck())
+		fmt.Println("已禁用健康检查")
 	}
 
-	// 使用 configService 调用配置服务方法 (示例)
-	listReq := &email_client_pb.ListConfigsRequest{
-		Page: 1, // 页码 (page -> Page)
-		// PageSize 会使用 EmailClient 中设置的默认值 (page_size -> PageSize)
-		// 可以覆盖: PageSize: 5,
-	}
-	fmt.Printf("\n尝试获取配置列表: %+v\n", listReq)
-	listResp, err := configService.ListConfigs(ctx, listReq)
-	if err != nil {
-		// 对于示例，我们只打印错误，不终止程序
-		log.Printf("获取配置列表失败: %v\n", err)
+	// 配置断路器
+	if *enableCircuitBreaker {
+		options = append(options, client.WithCircuitBreakerConfig(client.CircuitBreakerConfig{
+			FailureThreshold:    *failureThreshold,
+			ResetTimeout:        *resetTimeout,
+			HalfOpenMaxRequests: 1,
+		}))
+		fmt.Printf("已启用断路器，失败阈值: %d, 重置时间: %v\n", *failureThreshold, *resetTimeout)
 	} else {
-		fmt.Printf("获取配置列表成功，数量: %d\n", len(listResp.Configs))
-		// 可以选择性打印配置信息
-		// for _, cfg := range listResp.Configs {
-		//  fmt.Printf(" - Config ID: %s, Host: %s\n", cfg.Id, cfg.Host)
-		// }
+		options = append(options, client.DisableCircuitBreaker())
+		fmt.Println("已禁用断路器")
 	}
 
-	// 3. 示例: 获取单个配置
-	fmt.Println("\n3. 示例: 获取单个配置")
-	if *configIDToGet != "" {
-		getReq := &email_client_pb.GetConfigRequest{
-			Id: *configIDToGet, // 使用命令行指定的配置ID
+	// 配置重试
+	options = append(options, client.WithRetryConfig(client.RetryConfig{
+		MaxRetries:  *maxRetries,
+		RetryDelay:  *retryDelay,
+		RetryPolicy: client.ExponentialBackoff,
+	}))
+	fmt.Printf("已配置重试机制，最大重试次数: %d, 重试延迟: %v\n", *maxRetries, *retryDelay)
+
+	// 创建邮件客户端
+	emailClient, err := client.NewEmailClient(*serverAddr, *timeout, int32(*pageSize), *debug, options...)
+	if err != nil {
+		log.Fatalf("创建邮件客户端失败: %v", err)
+	}
+	defer emailClient.Close()
+
+	fmt.Println("邮件客户端已成功连接")
+	fmt.Println("提供以下服务:")
+	fmt.Println("- 邮件服务 (EmailService)")
+	fmt.Println("- 配置服务 (ConfigService)")
+
+	// 执行示例操作
+	ctx := context.Background()
+
+	if *listConfigs {
+		// 示例：列出所有配置
+		fmt.Println("\n===== 获取配置列表 =====")
+		// 创建 ListConfigsRequest
+		req := &email_client_pb.ListConfigsRequest{
+			Page:     1,
+			PageSize: int32(*pageSize),
 		}
-		fmt.Printf("尝试获取配置请求: %+v\n", getReq)
-		getResp, err := configService.GetConfig(ctx, getReq)
+		configs, err := emailClient.ConfigService().ListConfigs(ctx, req)
 		if err != nil {
-			log.Printf("获取配置 '%s' 失败: %v\n", *configIDToGet, err)
-		} else if getResp.Success {
-			fmt.Printf("获取配置 '%s' 成功:\n", *configIDToGet)
-			fmt.Printf("  ID: %s\n", getResp.Config.Id)
-			fmt.Printf("  名称: %s\n", getResp.Config.Name)
-			fmt.Printf("  服务器: %s:%d\n", getResp.Config.Server, getResp.Config.Port)
-			fmt.Printf("  协议: %s\n", getResp.Config.Protocol)
-			fmt.Printf("  用户名: %s\n", getResp.Config.Username)
-			fmt.Printf("  使用SSL: %t\n", getResp.Config.UseSsl)
-			// 注意: 时间戳需要检查是否为 nil
-			if getResp.Config.CreatedAt != nil {
-				fmt.Printf("  创建时间: %s\n", getResp.Config.CreatedAt.AsTime().Local())
-			}
-			if getResp.Config.UpdatedAt != nil {
-				fmt.Printf("  更新时间: %s\n", getResp.Config.UpdatedAt.AsTime().Local())
-			}
+			fmt.Printf("获取配置列表失败: %v\n", err)
 		} else {
-			fmt.Printf("获取配置 '%s' 失败: %s\n", *configIDToGet, getResp.Message)
+			fmt.Printf("共找到 %d 个配置:\n", configs.Total)
+			for i, config := range configs.Configs {
+				fmt.Printf("%d. %s (ID: %s) - %s:%d\n",
+					i+1, config.Name, config.Id, config.Server, config.Port)
+			}
 		}
-	} else {
-		fmt.Println("未指定 -get-config-id, 跳过 GetConfig 示例。")
 	}
 
-	fmt.Println("\n--- 示例调用结束 ---")
+	if *listEmails {
+		// 示例：列出发送的邮件
+		fmt.Println("\n===== 获取发送邮件列表 =====")
+		// 创建 GetSentEmailsRequest
+		req := &email_client_pb.GetSentEmailsRequest{
+			Page:     1,
+			PageSize: int32(*pageSize),
+		}
+		emails, err := emailClient.EmailService().GetSentEmails(ctx, req)
+		if err != nil {
+			fmt.Printf("获取邮件列表失败: %v\n", err)
+		} else {
+			fmt.Printf("共找到 %d 封邮件:\n", emails.Total)
+			for i, email := range emails.Emails {
+				fmt.Printf("%d. 标题: %s, 发件人: %s, 收件人: %v\n",
+					i+1, email.Title, email.From, email.To)
+			}
+		}
+	}
+
+	// 如果没有执行任何操作，展示创建配置和发送邮件的示例代码
+	if !*listConfigs && !*listEmails {
+		fmt.Println("\n===== 示例操作 =====")
+		fmt.Println("创建配置示例:")
+		fmt.Println(`
+		config := &email_client_pb.EmailConfig{
+			Protocol: email_client_pb.EmailConfig_SMTP,
+			Server:   "smtp.example.com",
+			Port:     587,
+			UseSsl:   true,
+			Username: "user@example.com",
+			Password: "password",
+			Name:     "示例配置",
+		}
+		req := &email_client_pb.CreateConfigRequest{
+			Config: config,
+		}
+		resp, err := emailClient.ConfigService().CreateConfig(ctx, req)
+		`)
+
+		fmt.Println("\n发送邮件示例:")
+		fmt.Println(`
+		email := &email_client_pb.Email{
+			Title:   "测试邮件",
+			Content: []byte("这是一封测试邮件"),
+			From:    "sender@example.com",
+			To:      []string{"recipient@example.com"},
+			SentAt:  timestamppb.Now(),
+		}
+		req := &email_client_pb.SendEmailRequest{
+			Email:    email,
+			ConfigId: "配置ID",
+		}
+		resp, err := emailClient.EmailService().SendEmail(ctx, req)
+		`)
+	}
+
+	// 等待信号以优雅退出
+	fmt.Println("\n按 Ctrl+C 退出")
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+	fmt.Println("正在关闭客户端...")
 }

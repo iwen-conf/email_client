@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc/connectivity"
@@ -22,63 +23,101 @@ type EmailClient struct {
 	requestTimeout  time.Duration
 	defaultPageSize int32
 	debug           bool
+
+	// 添加健康检查和重连相关字段
+	healthChecker   *HealthChecker
+	healthCheckLock sync.Mutex
+	options         clientOptions
+	connectionMutex sync.Mutex
+	target          string // 记录连接目标，用于重连
 }
 
 // NewEmailClient 创建一个新的 EmailClient 实例。
 // debug 参数控制是否打印 INFO 和 DEBUG 级别的日志。
-func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPageSize int32, debug bool) (*EmailClient, error) {
+// 增加可选的配置选项参数
+func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPageSize int32, debug bool, opts ...Option) (*EmailClient, error) {
 	if grpcAddress == "" {
 		log.Println("[ERROR] NewEmailClient: gRPC 服务地址不能为空")
 		return nil, fmt.Errorf("gRPC 服务地址不能为空")
+	}
+
+	// 处理选项
+	options := defaultOptions
+	for _, opt := range opts {
+		opt(&options)
 	}
 
 	if debug {
 		log.Printf("[INFO] NewEmailClient: 正在尝试连接统一 gRPC 服务: %s", grpcAddress)
 	}
 
+	client := &EmailClient{
+		requestTimeout:  requestTimeout,
+		defaultPageSize: defaultPageSize,
+		debug:           debug,
+		options:         options,
+		target:          grpcAddress,
+	}
+
+	// 建立连接
+	ctx, cancel := context.WithTimeout(context.Background(), options.minConnectTimeout)
+	defer cancel()
+
+	if err := client.connect(ctx); err != nil {
+		return nil, err
+	}
+
+	// 如果启用了健康检查，创建并启动健康检查器
+	if options.enableHealthCheck && options.healthCheckInterval > 0 {
+		client.startHealthCheck()
+	}
+
+	return client, nil
+}
+
+// connect 建立 gRPC 连接
+func (c *EmailClient) connect(ctx context.Context) error {
+	c.connectionMutex.Lock()
+	defer c.connectionMutex.Unlock()
+
 	// 建立共享的 gRPC 连接
-	conn, err := grpc.NewClient(grpcAddress,
+	conn, err := grpc.NewClient(c.target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Printf("[ERROR] NewEmailClient: 连接 gRPC 服务失败 (%s): %v", grpcAddress, err)
-		return nil, fmt.Errorf("连接 gRPC 服务失败 (%s): %w", grpcAddress, err)
+		log.Printf("[ERROR] NewEmailClient: 连接 gRPC 服务失败 (%s): %v", c.target, err)
+		return fmt.Errorf("连接 gRPC 服务失败 (%s): %w", c.target, err)
 	}
 
 	// 主动连接并等待 Ready 状态
 	conn.Connect()
-	if debug {
-		log.Printf("[INFO] NewEmailClient: 正在等待连接变为 Ready 状态 (%s)...", grpcAddress)
+	if c.debug {
+		log.Printf("[INFO] NewEmailClient: 正在等待连接变为 Ready 状态 (%s)...", c.target)
 	}
-
-	const defaultConnectTimeout = 10 * time.Second
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultConnectTimeout)
-	defer cancel()
 
 	for {
 		state := conn.GetState()
 		if state == connectivity.Ready {
-			if debug {
-				log.Printf("[INFO] NewEmailClient: 成功连接到 gRPC 服务 (%s)", grpcAddress)
+			if c.debug {
+				log.Printf("[INFO] NewEmailClient: 成功连接到 gRPC 服务 (%s)", c.target)
 			}
 			break // 成功连接
 		}
 		if !conn.WaitForStateChange(ctx, state) {
 			conn.Close()
-			errMsg := fmt.Sprintf("等待连接状态变化超时或被取消 (%s)", grpcAddress)
+			errMsg := fmt.Sprintf("等待连接状态变化超时或被取消 (%s)", c.target)
 			log.Printf("[ERROR] NewEmailClient: %s", errMsg)
-			return nil, fmt.Errorf("%s", errMsg)
+			return fmt.Errorf("%s", errMsg)
 		}
 		currentState := conn.GetState()
-		if debug {
-			log.Printf("[DEBUG] NewEmailClient: 连接状态变化 (%s): %v -> %v", grpcAddress, state, currentState)
+		if c.debug {
+			log.Printf("[DEBUG] NewEmailClient: 连接状态变化 (%s): %v -> %v", c.target, state, currentState)
 		}
 		if currentState == connectivity.TransientFailure || currentState == connectivity.Shutdown {
 			conn.Close()
-			errMsg := fmt.Sprintf("连接失败，当前状态: %v (%s)", currentState, grpcAddress)
+			errMsg := fmt.Sprintf("连接失败，当前状态: %v (%s)", currentState, c.target)
 			log.Printf("[ERROR] NewEmailClient: %s", errMsg)
-			return nil, fmt.Errorf("%s", errMsg)
+			return fmt.Errorf("%s", errMsg)
 		}
 	}
 
@@ -86,39 +125,76 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 	emailGrpcClient := email_client_pb.NewEmailServiceClient(conn)
 	configGrpcClient := email_client_pb.NewEmailConfigServiceClient(conn)
 
-	if debug {
-		log.Printf("[INFO] NewEmailClient: 已创建 EmailService 和 ConfigService 客户端 (%s)", grpcAddress)
+	if c.debug {
+		log.Printf("[INFO] NewEmailClient: 已创建 EmailService 和 ConfigService 客户端 (%s)", c.target)
 	}
 
-	// 创建内部的服务客户端实例, 传递 debug 状态
+	// 创建内部的服务客户端实例
 	emailService := &EmailServiceClient{
 		client:          emailGrpcClient,
 		conn:            conn,
-		requestTimeout:  requestTimeout,
-		defaultPageSize: defaultPageSize,
-		debug:           debug,
+		requestTimeout:  c.requestTimeout,
+		defaultPageSize: c.defaultPageSize,
+		debug:           c.debug,
 	}
 	configService := &ConfigServiceClient{
 		client:          configGrpcClient,
 		conn:            conn,
-		requestTimeout:  requestTimeout,
-		defaultPageSize: defaultPageSize,
-		debug:           debug,
+		requestTimeout:  c.requestTimeout,
+		defaultPageSize: c.defaultPageSize,
+		debug:           c.debug,
 	}
 
-	return &EmailClient{
-		conn:            conn,
-		emailService:    emailService,
-		configService:   configService,
-		requestTimeout:  requestTimeout,
-		defaultPageSize: defaultPageSize,
-		debug:           debug,
-	}, nil
+	// 设置客户端内部状态
+	c.conn = conn
+	c.emailService = emailService
+	c.configService = configService
+
+	return nil
+}
+
+// reconnect 重新建立 gRPC 连接
+// 用于健康检查器在检测到连接断开时尝试重连
+func (c *EmailClient) reconnect(ctx context.Context, target string) error {
+	if target != "" {
+		c.target = target
+	}
+	return c.connect(ctx)
+}
+
+// startHealthCheck 启动健康检查
+func (c *EmailClient) startHealthCheck() {
+	c.healthCheckLock.Lock()
+	defer c.healthCheckLock.Unlock()
+
+	if c.healthChecker != nil {
+		c.healthChecker.Stop()
+	}
+
+	c.healthChecker = NewHealthChecker(c, c.options.healthCheckInterval, c.debug)
+	c.healthChecker.Start()
+}
+
+// stopHealthCheck 停止健康检查
+func (c *EmailClient) stopHealthCheck() {
+	c.healthCheckLock.Lock()
+	defer c.healthCheckLock.Unlock()
+
+	if c.healthChecker != nil {
+		c.healthChecker.Stop()
+		c.healthChecker = nil
+	}
 }
 
 // Close 关闭 EmailClient 管理的共享 gRPC 连接。
 // 注意：调用此方法后，通过 EmailService() 和 ConfigService() 获取的客户端实例也将失效。
 func (c *EmailClient) Close() error {
+	// 停止健康检查
+	c.stopHealthCheck()
+
+	c.connectionMutex.Lock()
+	defer c.connectionMutex.Unlock()
+
 	if c.conn != nil {
 		if c.debug {
 			log.Printf("[INFO] EmailClient.Close: 正在关闭共享 gRPC 连接: %s", c.conn.Target())
@@ -130,6 +206,7 @@ func (c *EmailClient) Close() error {
 		if c.configService != nil {
 			c.configService.conn = nil
 		}
+		c.conn = nil
 		return err
 	}
 	return nil
