@@ -142,8 +142,8 @@ func TestClientIntegration(t *testing.T) {
 	})
 }
 
-// ExampleSendEmailWithAttachments 展示如何发送带附件的邮件
-func ExampleSendEmailWithAttachments() {
+// Example_SendingEmailsWithAttachments 展示如何发送带附件的邮件
+func Example_SendingEmailsWithAttachments() {
 	// 创建一个邮件客户端
 	grpcAddress := "email-service:50051" // 实际使用时替换为真实地址
 	requestTimeout := 10 * time.Second
