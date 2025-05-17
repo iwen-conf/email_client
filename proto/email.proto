@@ -32,6 +32,14 @@ service EmailConfigService {
   rpc TestConfig(TestConfigRequest) returns (TestConfigResponse);
 }
 
+// Attachment 代表一个邮件附件
+message Attachment {
+  string filename = 1;      // 附件文件名
+  bytes content = 2;        // 附件内容
+  string content_type = 3;  // 内容类型(MIME类型)
+  int64 size = 4;           // 附件大小(字节)
+}
+
 // Email 代表一封邮件的结构
 message Email {
   string title = 1;          // 邮件标题
@@ -40,6 +48,7 @@ message Email {
   repeated string to = 4;    // 收件人地址列表
   string id = 5;             // 邮件唯一ID
   google.protobuf.Timestamp sent_at = 6; // 邮件发送时间
+  repeated Attachment attachments = 7;   // 邮件附件列表
 }
 
 // EmailConfig 代表邮件服务器配置

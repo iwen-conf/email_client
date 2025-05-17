@@ -68,7 +68,76 @@ func (x EmailConfig_Protocol) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EmailConfig_Protocol.Descriptor instead.
 func (EmailConfig_Protocol) EnumDescriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{1, 0}
+	return file_proto_email_proto_rawDescGZIP(), []int{2, 0}
+}
+
+// Attachment 代表一个邮件附件
+type Attachment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`                          // 附件文件名
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                            // 附件内容
+	ContentType   string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // 内容类型(MIME类型)
+	Size          int64                  `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`                                 // 附件大小(字节)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Attachment) Reset() {
+	*x = Attachment{}
+	mi := &file_proto_email_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Attachment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Attachment) ProtoMessage() {}
+
+func (x *Attachment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_email_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
+func (*Attachment) Descriptor() ([]byte, []int) {
+	return file_proto_email_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Attachment) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *Attachment) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *Attachment) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *Attachment) GetSize() int64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
 }
 
 // Email 代表一封邮件的结构
@@ -80,13 +149,14 @@ type Email struct {
 	To            []string               `protobuf:"bytes,4,rep,name=to,proto3" json:"to,omitempty"`                       // 收件人地址列表
 	Id            string                 `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`                       // 邮件唯一ID
 	SentAt        *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"` // 邮件发送时间
+	Attachments   []*Attachment          `protobuf:"bytes,7,rep,name=attachments,proto3" json:"attachments,omitempty"`     // 邮件附件列表
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Email) Reset() {
 	*x = Email{}
-	mi := &file_proto_email_proto_msgTypes[0]
+	mi := &file_proto_email_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +168,7 @@ func (x *Email) String() string {
 func (*Email) ProtoMessage() {}
 
 func (x *Email) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[0]
+	mi := &file_proto_email_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +181,7 @@ func (x *Email) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Email.ProtoReflect.Descriptor instead.
 func (*Email) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{0}
+	return file_proto_email_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Email) GetTitle() string {
@@ -156,6 +226,13 @@ func (x *Email) GetSentAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Email) GetAttachments() []*Attachment {
+	if x != nil {
+		return x.Attachments
+	}
+	return nil
+}
+
 // EmailConfig 代表邮件服务器配置
 type EmailConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -177,7 +254,7 @@ type EmailConfig struct {
 
 func (x *EmailConfig) Reset() {
 	*x = EmailConfig{}
-	mi := &file_proto_email_proto_msgTypes[1]
+	mi := &file_proto_email_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +266,7 @@ func (x *EmailConfig) String() string {
 func (*EmailConfig) ProtoMessage() {}
 
 func (x *EmailConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[1]
+	mi := &file_proto_email_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +279,7 @@ func (x *EmailConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmailConfig.ProtoReflect.Descriptor instead.
 func (*EmailConfig) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{1}
+	return file_proto_email_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *EmailConfig) GetId() string {
@@ -299,7 +376,7 @@ type CreateConfigRequest struct {
 
 func (x *CreateConfigRequest) Reset() {
 	*x = CreateConfigRequest{}
-	mi := &file_proto_email_proto_msgTypes[2]
+	mi := &file_proto_email_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +388,7 @@ func (x *CreateConfigRequest) String() string {
 func (*CreateConfigRequest) ProtoMessage() {}
 
 func (x *CreateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[2]
+	mi := &file_proto_email_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +401,7 @@ func (x *CreateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateConfigRequest.ProtoReflect.Descriptor instead.
 func (*CreateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{2}
+	return file_proto_email_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateConfigRequest) GetConfig() *EmailConfig {
@@ -344,7 +421,7 @@ type GetConfigRequest struct {
 
 func (x *GetConfigRequest) Reset() {
 	*x = GetConfigRequest{}
-	mi := &file_proto_email_proto_msgTypes[3]
+	mi := &file_proto_email_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -356,7 +433,7 @@ func (x *GetConfigRequest) String() string {
 func (*GetConfigRequest) ProtoMessage() {}
 
 func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[3]
+	mi := &file_proto_email_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,7 +446,7 @@ func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{3}
+	return file_proto_email_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetConfigRequest) GetId() string {
@@ -389,7 +466,7 @@ type UpdateConfigRequest struct {
 
 func (x *UpdateConfigRequest) Reset() {
 	*x = UpdateConfigRequest{}
-	mi := &file_proto_email_proto_msgTypes[4]
+	mi := &file_proto_email_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +478,7 @@ func (x *UpdateConfigRequest) String() string {
 func (*UpdateConfigRequest) ProtoMessage() {}
 
 func (x *UpdateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[4]
+	mi := &file_proto_email_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +491,7 @@ func (x *UpdateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpdateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{4}
+	return file_proto_email_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UpdateConfigRequest) GetConfig() *EmailConfig {
@@ -434,7 +511,7 @@ type DeleteConfigRequest struct {
 
 func (x *DeleteConfigRequest) Reset() {
 	*x = DeleteConfigRequest{}
-	mi := &file_proto_email_proto_msgTypes[5]
+	mi := &file_proto_email_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -446,7 +523,7 @@ func (x *DeleteConfigRequest) String() string {
 func (*DeleteConfigRequest) ProtoMessage() {}
 
 func (x *DeleteConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[5]
+	mi := &file_proto_email_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -459,7 +536,7 @@ func (x *DeleteConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConfigRequest.ProtoReflect.Descriptor instead.
 func (*DeleteConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{5}
+	return file_proto_email_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteConfigRequest) GetId() string {
@@ -480,7 +557,7 @@ type DeleteConfigResponse struct {
 
 func (x *DeleteConfigResponse) Reset() {
 	*x = DeleteConfigResponse{}
-	mi := &file_proto_email_proto_msgTypes[6]
+	mi := &file_proto_email_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -492,7 +569,7 @@ func (x *DeleteConfigResponse) String() string {
 func (*DeleteConfigResponse) ProtoMessage() {}
 
 func (x *DeleteConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[6]
+	mi := &file_proto_email_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -505,7 +582,7 @@ func (x *DeleteConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConfigResponse.ProtoReflect.Descriptor instead.
 func (*DeleteConfigResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{6}
+	return file_proto_email_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteConfigResponse) GetSuccess() bool {
@@ -534,7 +611,7 @@ type ConfigResponse struct {
 
 func (x *ConfigResponse) Reset() {
 	*x = ConfigResponse{}
-	mi := &file_proto_email_proto_msgTypes[7]
+	mi := &file_proto_email_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -546,7 +623,7 @@ func (x *ConfigResponse) String() string {
 func (*ConfigResponse) ProtoMessage() {}
 
 func (x *ConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[7]
+	mi := &file_proto_email_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -559,7 +636,7 @@ func (x *ConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigResponse.ProtoReflect.Descriptor instead.
 func (*ConfigResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{7}
+	return file_proto_email_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ConfigResponse) GetSuccess() bool {
@@ -594,7 +671,7 @@ type ListConfigsRequest struct {
 
 func (x *ListConfigsRequest) Reset() {
 	*x = ListConfigsRequest{}
-	mi := &file_proto_email_proto_msgTypes[8]
+	mi := &file_proto_email_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +683,7 @@ func (x *ListConfigsRequest) String() string {
 func (*ListConfigsRequest) ProtoMessage() {}
 
 func (x *ListConfigsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[8]
+	mi := &file_proto_email_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +696,7 @@ func (x *ListConfigsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConfigsRequest.ProtoReflect.Descriptor instead.
 func (*ListConfigsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{8}
+	return file_proto_email_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListConfigsRequest) GetPage() int32 {
@@ -647,7 +724,7 @@ type ListConfigsResponse struct {
 
 func (x *ListConfigsResponse) Reset() {
 	*x = ListConfigsResponse{}
-	mi := &file_proto_email_proto_msgTypes[9]
+	mi := &file_proto_email_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +736,7 @@ func (x *ListConfigsResponse) String() string {
 func (*ListConfigsResponse) ProtoMessage() {}
 
 func (x *ListConfigsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[9]
+	mi := &file_proto_email_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +749,7 @@ func (x *ListConfigsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConfigsResponse.ProtoReflect.Descriptor instead.
 func (*ListConfigsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{9}
+	return file_proto_email_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListConfigsResponse) GetConfigs() []*EmailConfig {
@@ -699,7 +776,7 @@ type TestConfigRequest struct {
 
 func (x *TestConfigRequest) Reset() {
 	*x = TestConfigRequest{}
-	mi := &file_proto_email_proto_msgTypes[10]
+	mi := &file_proto_email_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +788,7 @@ func (x *TestConfigRequest) String() string {
 func (*TestConfigRequest) ProtoMessage() {}
 
 func (x *TestConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[10]
+	mi := &file_proto_email_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -724,7 +801,7 @@ func (x *TestConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestConfigRequest.ProtoReflect.Descriptor instead.
 func (*TestConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{10}
+	return file_proto_email_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *TestConfigRequest) GetConfig() *EmailConfig {
@@ -745,7 +822,7 @@ type TestConfigResponse struct {
 
 func (x *TestConfigResponse) Reset() {
 	*x = TestConfigResponse{}
-	mi := &file_proto_email_proto_msgTypes[11]
+	mi := &file_proto_email_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -757,7 +834,7 @@ func (x *TestConfigResponse) String() string {
 func (*TestConfigResponse) ProtoMessage() {}
 
 func (x *TestConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[11]
+	mi := &file_proto_email_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -770,7 +847,7 @@ func (x *TestConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestConfigResponse.ProtoReflect.Descriptor instead.
 func (*TestConfigResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{11}
+	return file_proto_email_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *TestConfigResponse) GetSuccess() bool {
@@ -798,7 +875,7 @@ type GetSentEmailsRequest struct {
 
 func (x *GetSentEmailsRequest) Reset() {
 	*x = GetSentEmailsRequest{}
-	mi := &file_proto_email_proto_msgTypes[12]
+	mi := &file_proto_email_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -810,7 +887,7 @@ func (x *GetSentEmailsRequest) String() string {
 func (*GetSentEmailsRequest) ProtoMessage() {}
 
 func (x *GetSentEmailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[12]
+	mi := &file_proto_email_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -823,7 +900,7 @@ func (x *GetSentEmailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSentEmailsRequest.ProtoReflect.Descriptor instead.
 func (*GetSentEmailsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{12}
+	return file_proto_email_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetSentEmailsRequest) GetPage() int32 {
@@ -851,7 +928,7 @@ type GetSentEmailsResponse struct {
 
 func (x *GetSentEmailsResponse) Reset() {
 	*x = GetSentEmailsResponse{}
-	mi := &file_proto_email_proto_msgTypes[13]
+	mi := &file_proto_email_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -863,7 +940,7 @@ func (x *GetSentEmailsResponse) String() string {
 func (*GetSentEmailsResponse) ProtoMessage() {}
 
 func (x *GetSentEmailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[13]
+	mi := &file_proto_email_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -876,7 +953,7 @@ func (x *GetSentEmailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSentEmailsResponse.ProtoReflect.Descriptor instead.
 func (*GetSentEmailsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{13}
+	return file_proto_email_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetSentEmailsResponse) GetEmails() []*Email {
@@ -904,7 +981,7 @@ type SendEmailRequest struct {
 
 func (x *SendEmailRequest) Reset() {
 	*x = SendEmailRequest{}
-	mi := &file_proto_email_proto_msgTypes[14]
+	mi := &file_proto_email_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -916,7 +993,7 @@ func (x *SendEmailRequest) String() string {
 func (*SendEmailRequest) ProtoMessage() {}
 
 func (x *SendEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[14]
+	mi := &file_proto_email_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -929,7 +1006,7 @@ func (x *SendEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailRequest.ProtoReflect.Descriptor instead.
 func (*SendEmailRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{14}
+	return file_proto_email_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SendEmailRequest) GetEmail() *Email {
@@ -958,7 +1035,7 @@ type SendEmailResponse struct {
 
 func (x *SendEmailResponse) Reset() {
 	*x = SendEmailResponse{}
-	mi := &file_proto_email_proto_msgTypes[15]
+	mi := &file_proto_email_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -970,7 +1047,7 @@ func (x *SendEmailResponse) String() string {
 func (*SendEmailResponse) ProtoMessage() {}
 
 func (x *SendEmailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[15]
+	mi := &file_proto_email_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -983,7 +1060,7 @@ func (x *SendEmailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailResponse.ProtoReflect.Descriptor instead.
 func (*SendEmailResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{15}
+	return file_proto_email_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SendEmailResponse) GetSuccess() bool {
@@ -1018,7 +1095,7 @@ type SendEmailsRequest struct {
 
 func (x *SendEmailsRequest) Reset() {
 	*x = SendEmailsRequest{}
-	mi := &file_proto_email_proto_msgTypes[16]
+	mi := &file_proto_email_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1030,7 +1107,7 @@ func (x *SendEmailsRequest) String() string {
 func (*SendEmailsRequest) ProtoMessage() {}
 
 func (x *SendEmailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[16]
+	mi := &file_proto_email_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1043,7 +1120,7 @@ func (x *SendEmailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailsRequest.ProtoReflect.Descriptor instead.
 func (*SendEmailsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{16}
+	return file_proto_email_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SendEmailsRequest) GetEmails() []*Email {
@@ -1072,7 +1149,7 @@ type SendEmailsResponse struct {
 
 func (x *SendEmailsResponse) Reset() {
 	*x = SendEmailsResponse{}
-	mi := &file_proto_email_proto_msgTypes[17]
+	mi := &file_proto_email_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1084,7 +1161,7 @@ func (x *SendEmailsResponse) String() string {
 func (*SendEmailsResponse) ProtoMessage() {}
 
 func (x *SendEmailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_email_proto_msgTypes[17]
+	mi := &file_proto_email_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1097,7 +1174,7 @@ func (x *SendEmailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailsResponse.ProtoReflect.Descriptor instead.
 func (*SendEmailsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_email_proto_rawDescGZIP(), []int{17}
+	return file_proto_email_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SendEmailsResponse) GetSuccess() bool {
@@ -1125,14 +1202,21 @@ var File_proto_email_proto protoreflect.FileDescriptor
 
 const file_proto_email_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/email.proto\x12\x05email\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa0\x01\n" +
+	"\x11proto/email.proto\x12\x05email\x1a\x1fgoogle/protobuf/timestamp.proto\"y\n" +
+	"\n" +
+	"Attachment\x12\x1a\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12\x12\n" +
+	"\x04size\x18\x04 \x01(\x03R\x04size\"\xd5\x01\n" +
 	"\x05Email\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12\x12\n" +
 	"\x04from\x18\x03 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x04 \x03(\tR\x02to\x12\x0e\n" +
 	"\x02id\x18\x05 \x01(\tR\x02id\x123\n" +
-	"\asent_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\"\xc3\x03\n" +
+	"\asent_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\x123\n" +
+	"\vattachments\x18\a \x03(\v2\x11.email.AttachmentR\vattachments\"\xc3\x03\n" +
 	"\vEmailConfig\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x127\n" +
 	"\bprotocol\x18\x02 \x01(\x0e2\x1b.email.EmailConfig.ProtocolR\bprotocol\x12\x16\n" +
@@ -1226,65 +1310,67 @@ func file_proto_email_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_email_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_email_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_proto_email_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_proto_email_proto_goTypes = []any{
 	(EmailConfig_Protocol)(0),     // 0: email.EmailConfig.Protocol
-	(*Email)(nil),                 // 1: email.Email
-	(*EmailConfig)(nil),           // 2: email.EmailConfig
-	(*CreateConfigRequest)(nil),   // 3: email.CreateConfigRequest
-	(*GetConfigRequest)(nil),      // 4: email.GetConfigRequest
-	(*UpdateConfigRequest)(nil),   // 5: email.UpdateConfigRequest
-	(*DeleteConfigRequest)(nil),   // 6: email.DeleteConfigRequest
-	(*DeleteConfigResponse)(nil),  // 7: email.DeleteConfigResponse
-	(*ConfigResponse)(nil),        // 8: email.ConfigResponse
-	(*ListConfigsRequest)(nil),    // 9: email.ListConfigsRequest
-	(*ListConfigsResponse)(nil),   // 10: email.ListConfigsResponse
-	(*TestConfigRequest)(nil),     // 11: email.TestConfigRequest
-	(*TestConfigResponse)(nil),    // 12: email.TestConfigResponse
-	(*GetSentEmailsRequest)(nil),  // 13: email.GetSentEmailsRequest
-	(*GetSentEmailsResponse)(nil), // 14: email.GetSentEmailsResponse
-	(*SendEmailRequest)(nil),      // 15: email.SendEmailRequest
-	(*SendEmailResponse)(nil),     // 16: email.SendEmailResponse
-	(*SendEmailsRequest)(nil),     // 17: email.SendEmailsRequest
-	(*SendEmailsResponse)(nil),    // 18: email.SendEmailsResponse
-	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
+	(*Attachment)(nil),            // 1: email.Attachment
+	(*Email)(nil),                 // 2: email.Email
+	(*EmailConfig)(nil),           // 3: email.EmailConfig
+	(*CreateConfigRequest)(nil),   // 4: email.CreateConfigRequest
+	(*GetConfigRequest)(nil),      // 5: email.GetConfigRequest
+	(*UpdateConfigRequest)(nil),   // 6: email.UpdateConfigRequest
+	(*DeleteConfigRequest)(nil),   // 7: email.DeleteConfigRequest
+	(*DeleteConfigResponse)(nil),  // 8: email.DeleteConfigResponse
+	(*ConfigResponse)(nil),        // 9: email.ConfigResponse
+	(*ListConfigsRequest)(nil),    // 10: email.ListConfigsRequest
+	(*ListConfigsResponse)(nil),   // 11: email.ListConfigsResponse
+	(*TestConfigRequest)(nil),     // 12: email.TestConfigRequest
+	(*TestConfigResponse)(nil),    // 13: email.TestConfigResponse
+	(*GetSentEmailsRequest)(nil),  // 14: email.GetSentEmailsRequest
+	(*GetSentEmailsResponse)(nil), // 15: email.GetSentEmailsResponse
+	(*SendEmailRequest)(nil),      // 16: email.SendEmailRequest
+	(*SendEmailResponse)(nil),     // 17: email.SendEmailResponse
+	(*SendEmailsRequest)(nil),     // 18: email.SendEmailsRequest
+	(*SendEmailsResponse)(nil),    // 19: email.SendEmailsResponse
+	(*timestamppb.Timestamp)(nil), // 20: google.protobuf.Timestamp
 }
 var file_proto_email_proto_depIdxs = []int32{
-	19, // 0: email.Email.sent_at:type_name -> google.protobuf.Timestamp
-	0,  // 1: email.EmailConfig.protocol:type_name -> email.EmailConfig.Protocol
-	19, // 2: email.EmailConfig.created_at:type_name -> google.protobuf.Timestamp
-	19, // 3: email.EmailConfig.updated_at:type_name -> google.protobuf.Timestamp
-	2,  // 4: email.CreateConfigRequest.config:type_name -> email.EmailConfig
-	2,  // 5: email.UpdateConfigRequest.config:type_name -> email.EmailConfig
-	2,  // 6: email.ConfigResponse.config:type_name -> email.EmailConfig
-	2,  // 7: email.ListConfigsResponse.configs:type_name -> email.EmailConfig
-	2,  // 8: email.TestConfigRequest.config:type_name -> email.EmailConfig
-	1,  // 9: email.GetSentEmailsResponse.emails:type_name -> email.Email
-	1,  // 10: email.SendEmailRequest.email:type_name -> email.Email
-	1,  // 11: email.SendEmailsRequest.emails:type_name -> email.Email
-	13, // 12: email.EmailService.GetSentEmails:input_type -> email.GetSentEmailsRequest
-	15, // 13: email.EmailService.SendEmail:input_type -> email.SendEmailRequest
-	17, // 14: email.EmailService.SendEmails:input_type -> email.SendEmailsRequest
-	3,  // 15: email.EmailConfigService.CreateConfig:input_type -> email.CreateConfigRequest
-	4,  // 16: email.EmailConfigService.GetConfig:input_type -> email.GetConfigRequest
-	5,  // 17: email.EmailConfigService.UpdateConfig:input_type -> email.UpdateConfigRequest
-	6,  // 18: email.EmailConfigService.DeleteConfig:input_type -> email.DeleteConfigRequest
-	9,  // 19: email.EmailConfigService.ListConfigs:input_type -> email.ListConfigsRequest
-	11, // 20: email.EmailConfigService.TestConfig:input_type -> email.TestConfigRequest
-	14, // 21: email.EmailService.GetSentEmails:output_type -> email.GetSentEmailsResponse
-	16, // 22: email.EmailService.SendEmail:output_type -> email.SendEmailResponse
-	18, // 23: email.EmailService.SendEmails:output_type -> email.SendEmailsResponse
-	8,  // 24: email.EmailConfigService.CreateConfig:output_type -> email.ConfigResponse
-	8,  // 25: email.EmailConfigService.GetConfig:output_type -> email.ConfigResponse
-	8,  // 26: email.EmailConfigService.UpdateConfig:output_type -> email.ConfigResponse
-	7,  // 27: email.EmailConfigService.DeleteConfig:output_type -> email.DeleteConfigResponse
-	10, // 28: email.EmailConfigService.ListConfigs:output_type -> email.ListConfigsResponse
-	12, // 29: email.EmailConfigService.TestConfig:output_type -> email.TestConfigResponse
-	21, // [21:30] is the sub-list for method output_type
-	12, // [12:21] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	20, // 0: email.Email.sent_at:type_name -> google.protobuf.Timestamp
+	1,  // 1: email.Email.attachments:type_name -> email.Attachment
+	0,  // 2: email.EmailConfig.protocol:type_name -> email.EmailConfig.Protocol
+	20, // 3: email.EmailConfig.created_at:type_name -> google.protobuf.Timestamp
+	20, // 4: email.EmailConfig.updated_at:type_name -> google.protobuf.Timestamp
+	3,  // 5: email.CreateConfigRequest.config:type_name -> email.EmailConfig
+	3,  // 6: email.UpdateConfigRequest.config:type_name -> email.EmailConfig
+	3,  // 7: email.ConfigResponse.config:type_name -> email.EmailConfig
+	3,  // 8: email.ListConfigsResponse.configs:type_name -> email.EmailConfig
+	3,  // 9: email.TestConfigRequest.config:type_name -> email.EmailConfig
+	2,  // 10: email.GetSentEmailsResponse.emails:type_name -> email.Email
+	2,  // 11: email.SendEmailRequest.email:type_name -> email.Email
+	2,  // 12: email.SendEmailsRequest.emails:type_name -> email.Email
+	14, // 13: email.EmailService.GetSentEmails:input_type -> email.GetSentEmailsRequest
+	16, // 14: email.EmailService.SendEmail:input_type -> email.SendEmailRequest
+	18, // 15: email.EmailService.SendEmails:input_type -> email.SendEmailsRequest
+	4,  // 16: email.EmailConfigService.CreateConfig:input_type -> email.CreateConfigRequest
+	5,  // 17: email.EmailConfigService.GetConfig:input_type -> email.GetConfigRequest
+	6,  // 18: email.EmailConfigService.UpdateConfig:input_type -> email.UpdateConfigRequest
+	7,  // 19: email.EmailConfigService.DeleteConfig:input_type -> email.DeleteConfigRequest
+	10, // 20: email.EmailConfigService.ListConfigs:input_type -> email.ListConfigsRequest
+	12, // 21: email.EmailConfigService.TestConfig:input_type -> email.TestConfigRequest
+	15, // 22: email.EmailService.GetSentEmails:output_type -> email.GetSentEmailsResponse
+	17, // 23: email.EmailService.SendEmail:output_type -> email.SendEmailResponse
+	19, // 24: email.EmailService.SendEmails:output_type -> email.SendEmailsResponse
+	9,  // 25: email.EmailConfigService.CreateConfig:output_type -> email.ConfigResponse
+	9,  // 26: email.EmailConfigService.GetConfig:output_type -> email.ConfigResponse
+	9,  // 27: email.EmailConfigService.UpdateConfig:output_type -> email.ConfigResponse
+	8,  // 28: email.EmailConfigService.DeleteConfig:output_type -> email.DeleteConfigResponse
+	11, // 29: email.EmailConfigService.ListConfigs:output_type -> email.ListConfigsResponse
+	13, // 30: email.EmailConfigService.TestConfig:output_type -> email.TestConfigResponse
+	22, // [22:31] is the sub-list for method output_type
+	13, // [13:22] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_proto_email_proto_init() }
@@ -1298,7 +1384,7 @@ func file_proto_email_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_email_proto_rawDesc), len(file_proto_email_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

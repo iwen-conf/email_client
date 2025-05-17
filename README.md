@@ -128,6 +128,30 @@ sendReq := &email_client_pb.SendEmailRequest{
     ConfigId: "config123",
 }
 resp, err := emailClient.EmailService().SendEmail(ctx, sendReq)
+
+// 发送带附件的邮件（便捷方法）
+ctx := context.Background()
+title := "带附件的邮件"
+content := []byte("这是一封包含附件的邮件")
+from := "sender@example.com"
+to := []string{"recipient@example.com"}
+configID := "config123"
+
+// 发送单个附件
+attachmentPath := "/path/to/document.pdf"
+resp, err := emailClient.EmailService().SendEmailWithAttachment(
+    ctx, title, content, from, to, configID, attachmentPath,
+)
+
+// 发送多个附件
+attachmentPaths := []string{
+    "/path/to/document.pdf",
+    "/path/to/image.jpg",
+    "/path/to/spreadsheet.xlsx",
+}
+resp, err = emailClient.EmailService().SendEmailWithAttachments(
+    ctx, title, content, from, to, configID, attachmentPaths,
+)
 ```
 
 ### 配置服务
