@@ -6,6 +6,7 @@ option go_package = "proto/email_client_pb";
 
 package email;
 
+
 // EmailService 定义邮件相关操作的服务
 service EmailService {
   // GetSentEmails 获取已发送邮件列表，支持分页查询
@@ -49,6 +50,7 @@ message Email {
   string id = 5;             // 邮件唯一ID
   google.protobuf.Timestamp sent_at = 6; // 邮件发送时间
   repeated Attachment attachments = 7;   // 邮件附件列表
+  string email_type = 8;     // 邮件类型: normal或test
 }
 
 // EmailConfig 代表邮件服务器配置
@@ -132,6 +134,7 @@ message TestConfigResponse {
 message GetSentEmailsRequest {
   int32 page = 1;            // 页码，从1开始
   int32 page_size = 2;       // 每页记录数
+  string email_type = 3;     // 邮件类型过滤，为空表示所有类型
 }
 
 // GetSentEmailsResponse 获取已发送邮件列表的响应

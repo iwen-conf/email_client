@@ -1,10 +1,12 @@
 # gRPC Email Client
 
-一个功能齐全的 gRPC 邮件客户端库，为邮件服务和配置服务提供高级接口。作为外部库导入使用，当前版本 v0.0.1。
+一个功能齐全的 gRPC 邮件客户端库，为邮件服务和配置服务提供高级接口。作为外部库导入使用，当前版本 v0.1.0。
 
 ## 主要特性
 
 - **统一连接管理**：使用单个连接同时访问邮件服务和配置服务
+- **邮件类型分类**：支持正常业务邮件和测试邮件的分类管理和过滤查询 🆕
+- **附件支持**：完整的邮件附件发送功能，支持多种文件类型
 - **连接池管理**：高效管理多个 gRPC 连接，提升并发性能
 - **结构化日志**：支持不同日志级别、格式和输出方式的日志系统
 - **速率限制**：基于令牌桶算法的API访问速率限制
@@ -15,6 +17,65 @@
 - **性能指标收集**：监控请求执行情况和性能指标
 - **选项模式配置**：灵活的客户端配置系统
 - **模块化架构**：清晰的职责分离，便于维护和扩展
+
+## 版本更新 🆕
+
+### v0.1.0 新特性
+
+**邮件类型分类功能**
+- 支持 `normal`（正常业务邮件）和 `test`（测试邮件）两种类型
+- 提供便捷的类型化发送方法
+- 支持按邮件类型过滤查询历史邮件
+- 完全向后兼容，现有代码无需修改即可正常工作
+
+**增强的附件支持**
+- 优化了文件读取性能，使用 `os.ReadFile` 替代已废弃的 `ioutil.ReadFile`
+- 支持多种文件类型的MIME类型自动检测
+- 提供单附件和多附件的便捷发送方法
+
+## 升级指南 📈
+
+### 从 v0.0.x 升级到 v0.1.0
+
+**1. 更新依赖**
+```bash
+go get -u github.com/iwen-conf/email_client
+go mod tidy
+```
+
+**2. 现有代码兼容性**
+✅ **无需修改现有代码** - 所有现有的API保持完全兼容
+
+**3. 可选的新功能使用**
+
+如果您想使用新的邮件类型功能，可以逐步迁移：
+
+```go
+// 旧的发送方式（继续有效）
+resp, err := emailClient.EmailService().SendEmail(ctx, sendReq)
+
+// 新的类型化发送方式（可选升级）
+// 发送正常业务邮件
+resp, err := emailClient.EmailService().SendNormalEmail(
+    ctx, title, content, from, to, configID,
+)
+
+// 发送测试邮件
+resp, err := emailClient.EmailService().SendTestEmail(
+    ctx, title, content, from, to, configID,
+)
+```
+
+**4. 新的查询功能**
+
+```go
+// 获取所有邮件（原有功能保持不变）
+emails, err := emailClient.EmailService().GetSentEmails(ctx, req)
+
+// 新增：按类型过滤查询
+normalEmails, err := emailClient.EmailService().GetNormalEmails(ctx, 1, 10)
+testEmails, err := emailClient.EmailService().GetTestEmails(ctx, 1, 10)
+```
 
 ## 安装
 
@@ -101,7 +162,100 @@ emailClient, err := client.NewEmailClient(
 
 ## 使用示例
 
-### 邮件服务
+### 邮件类型功能 🆕
+
+```go
+// 导入必要的包
+import (
+    "context"
+    "github.com/iwen-conf/email_client/client"
+    "github.com/iwen-conf/email_client/client/services"
+)
+
+// 发送不同类型的邮件
+ctx := context.Background()
+configID := "your_email_config_id"
+
+// 1. 发送正常业务邮件
+normalResp, err := emailClient.EmailService().SendNormalEmail(
+    ctx,
+    "业务通知：订单已发货",
+    []byte("您的订单 #12345 已成功发货，预计3-5个工作日内到达。"),
+    "business@example.com",
+    []string{"customer@example.com"},
+    configID,
+)
+
+// 2. 发送测试邮件
+testResp, err := emailClient.EmailService().SendTestEmail(
+    ctx,
+    "邮箱配置测试",
+    []byte("这是一封测试邮件，用于验证邮箱配置是否正常工作。"),
+    "system@example.com",
+    []string{"admin@example.com"},
+    configID,
+)
+
+// 3. 发送带附件的业务邮件
+normalWithAttachResp, err := emailClient.EmailService().SendNormalEmailWithAttachments(
+    ctx,
+    "合同文件",
+    []byte("请查收附件中的合同文件，请您审阅并签署。"),
+    "business@example.com",
+    []string{"partner@example.com"},
+    configID,
+    []string{"/path/to/contract.pdf", "/path/to/terms.docx"},
+)
+
+// 4. 发送带附件的测试邮件
+testWithAttachResp, err := emailClient.EmailService().SendTestEmailWithAttachments(
+    ctx,
+    "附件功能测试",
+    []byte("测试邮件附件发送功能是否正常。"),
+    "system@example.com",
+    []string{"admin@example.com"},
+    configID,
+    []string{"/path/to/test_file.txt"},
+)
+```
+
+### 按类型查询邮件 🆕
+
+```go
+// 1. 获取所有类型的邮件
+allEmails, err := emailClient.EmailService().GetAllSentEmails(ctx, 1, 20)
+if err != nil {
+    // 处理错误
+}
+
+// 2. 只获取正常业务邮件
+normalEmails, err := emailClient.EmailService().GetNormalEmails(ctx, 1, 20)
+if err != nil {
+    // 处理错误
+}
+
+// 3. 只获取测试邮件
+testEmails, err := emailClient.EmailService().GetTestEmails(ctx, 1, 20)
+if err != nil {
+    // 处理错误
+}
+
+// 4. 使用通用方法自定义过滤
+customEmails, err := emailClient.EmailService().GetSentEmailsByType(
+    ctx, 1, 10, services.EmailTypeNormal,
+)
+if err != nil {
+    // 处理错误
+}
+
+// 处理查询结果
+for _, email := range normalEmails.Emails {
+    fmt.Printf("邮件类型: %s, 标题: %s, 发送时间: %s\n", 
+        email.EmailType, email.Title, email.SentAt.AsTime().Format("2006-01-02 15:04:05"))
+}
+```
+
+### 邮件服务（原有功能）
 
 ```go
 // 获取已发送邮件列表
@@ -115,13 +269,14 @@ if err != nil {
     // 处理错误
 }
 
-// 发送邮件
+// 发送邮件（传统方式）
 email := &email_client_pb.Email{
-    Title:   "测试邮件",
-    Content: []byte("这是一封测试邮件"),
-    From:    "sender@example.com",
-    To:      []string{"recipient@example.com"},
-    SentAt:  timestamppb.Now(),
+    Title:     "测试邮件",
+    Content:   []byte("这是一封测试邮件"),
+    From:      "sender@example.com",
+    To:        []string{"recipient@example.com"},
+    EmailType: services.EmailTypeNormal, // 可选：指定邮件类型
+    SentAt:    timestamppb.Now(),
 }
 sendReq := &email_client_pb.SendEmailRequest{
     Email:    email,
@@ -434,4 +589,53 @@ options = append(options, client.DisableCircuitBreaker())
 
 ## 许可证
 
-MIT 许可证 
+MIT 许可证
+
+## 邮件类型常量 🆕
+
+库提供了邮件类型常量，便于代码中使用：
+
+```go
+import "github.com/iwen-conf/email_client/client/services"
+
+// 邮件类型常量
+services.EmailTypeNormal  // "normal" - 正常业务邮件
+services.EmailTypeTest    // "test" - 测试配置邮件
+
+// 使用示例
+emailType := services.EmailTypeNormal
+if isTestMode {
+    emailType = services.EmailTypeTest
+}
+
+// 按类型发送邮件
+if emailType == services.EmailTypeNormal {
+    resp, err := emailClient.EmailService().SendNormalEmail(ctx, title, content, from, to, configID)
+} else {
+    resp, err := emailClient.EmailService().SendTestEmail(ctx, title, content, from, to, configID)
+}
+```
+
+## API 参考
+
+### 邮件类型相关方法 🆕
+
+#### 发送方法
+- `SendNormalEmail()` - 发送正常业务邮件
+- `SendTestEmail()` - 发送测试邮件  
+- `SendNormalEmailWithAttachments()` - 发送带附件的业务邮件
+- `SendTestEmailWithAttachments()` - 发送带附件的测试邮件
+
+#### 查询方法
+- `GetAllSentEmails()` - 获取所有类型的邮件
+- `GetNormalEmails()` - 获取正常业务邮件
+- `GetTestEmails()` - 获取测试邮件
+- `GetSentEmailsByType()` - 按指定类型过滤邮件
+
+#### 原有方法（保持兼容）
+- `SendEmail()` - 通用邮件发送
+- `SendEmailWithAttachment()` - 发送带单个附件的邮件
+- `SendEmailWithAttachments()` - 发送带多个附件的邮件
+- `GetSentEmails()` - 获取邮件列表
+
+## 高级功能说明 

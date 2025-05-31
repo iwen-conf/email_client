@@ -143,13 +143,14 @@ func (x *Attachment) GetSize() int64 {
 // Email 代表一封邮件的结构
 type Email struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`                 // 邮件标题
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`             // 邮件内容
-	From          string                 `protobuf:"bytes,3,opt,name=from,proto3" json:"from,omitempty"`                   // 发件人地址
-	To            []string               `protobuf:"bytes,4,rep,name=to,proto3" json:"to,omitempty"`                       // 收件人地址列表
-	Id            string                 `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`                       // 邮件唯一ID
-	SentAt        *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"` // 邮件发送时间
-	Attachments   []*Attachment          `protobuf:"bytes,7,rep,name=attachments,proto3" json:"attachments,omitempty"`     // 邮件附件列表
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`                          // 邮件标题
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                      // 邮件内容
+	From          string                 `protobuf:"bytes,3,opt,name=from,proto3" json:"from,omitempty"`                            // 发件人地址
+	To            []string               `protobuf:"bytes,4,rep,name=to,proto3" json:"to,omitempty"`                                // 收件人地址列表
+	Id            string                 `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`                                // 邮件唯一ID
+	SentAt        *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"`          // 邮件发送时间
+	Attachments   []*Attachment          `protobuf:"bytes,7,rep,name=attachments,proto3" json:"attachments,omitempty"`              // 邮件附件列表
+	EmailType     string                 `protobuf:"bytes,8,opt,name=email_type,json=emailType,proto3" json:"email_type,omitempty"` // 邮件类型: normal或test
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -231,6 +232,13 @@ func (x *Email) GetAttachments() []*Attachment {
 		return x.Attachments
 	}
 	return nil
+}
+
+func (x *Email) GetEmailType() string {
+	if x != nil {
+		return x.EmailType
+	}
+	return ""
 }
 
 // EmailConfig 代表邮件服务器配置
@@ -867,8 +875,9 @@ func (x *TestConfigResponse) GetMessage() string {
 // GetSentEmailsRequest 获取已发送邮件列表的请求
 type GetSentEmailsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`                         // 页码，从1开始
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"` // 每页记录数
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`                           // 页码，从1开始
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`   // 每页记录数
+	EmailType     string                 `protobuf:"bytes,3,opt,name=email_type,json=emailType,proto3" json:"email_type,omitempty"` // 邮件类型过滤，为空表示所有类型
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -915,6 +924,13 @@ func (x *GetSentEmailsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *GetSentEmailsRequest) GetEmailType() string {
+	if x != nil {
+		return x.EmailType
+	}
+	return ""
 }
 
 // GetSentEmailsResponse 获取已发送邮件列表的响应
@@ -1208,7 +1224,7 @@ const file_proto_email_proto_rawDesc = "" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12\x12\n" +
-	"\x04size\x18\x04 \x01(\x03R\x04size\"\xd5\x01\n" +
+	"\x04size\x18\x04 \x01(\x03R\x04size\"\xf4\x01\n" +
 	"\x05Email\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12\x12\n" +
@@ -1216,7 +1232,9 @@ const file_proto_email_proto_rawDesc = "" +
 	"\x02to\x18\x04 \x03(\tR\x02to\x12\x0e\n" +
 	"\x02id\x18\x05 \x01(\tR\x02id\x123\n" +
 	"\asent_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\x123\n" +
-	"\vattachments\x18\a \x03(\v2\x11.email.AttachmentR\vattachments\"\xc3\x03\n" +
+	"\vattachments\x18\a \x03(\v2\x11.email.AttachmentR\vattachments\x12\x1d\n" +
+	"\n" +
+	"email_type\x18\b \x01(\tR\temailType\"\xc3\x03\n" +
 	"\vEmailConfig\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x127\n" +
 	"\bprotocol\x18\x02 \x01(\x0e2\x1b.email.EmailConfig.ProtocolR\bprotocol\x12\x16\n" +
@@ -1262,10 +1280,12 @@ const file_proto_email_proto_rawDesc = "" +
 	"\x06config\x18\x01 \x01(\v2\x12.email.EmailConfigR\x06config\"H\n" +
 	"\x12TestConfigResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"G\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"f\n" +
 	"\x14GetSentEmailsRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"S\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"email_type\x18\x03 \x01(\tR\temailType\"S\n" +
 	"\x15GetSentEmailsResponse\x12$\n" +
 	"\x06emails\x18\x01 \x03(\v2\f.email.EmailR\x06emails\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"S\n" +

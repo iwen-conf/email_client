@@ -19,6 +19,12 @@ type EmailServiceClient struct {
 	debug           bool
 }
 
+// EmailType 定义邮件类型常量
+const (
+	EmailTypeNormal = "normal" // 正常业务邮件
+	EmailTypeTest   = "test"   // 测试配置邮件
+)
+
 // NewEmailServiceClient 创建一个使用已存在连接的 EmailServiceClient 实例。
 func NewEmailServiceClient(conn *grpc.ClientConn, requestTimeout time.Duration, defaultPageSize int32, debug bool) *EmailServiceClient {
 	// 创建 gRPC 存根
@@ -65,6 +71,44 @@ func (c *EmailServiceClient) GetSentEmails(ctx context.Context, req *email_clien
 	return c.client.GetSentEmails(ctx, req)
 }
 
+// GetSentEmailsByType 按邮件类型获取已发送邮件列表（便捷方法）
+func (c *EmailServiceClient) GetSentEmailsByType(ctx context.Context, page, pageSize int32, emailType string) (*email_client_pb.GetSentEmailsResponse, error) {
+	// 应用请求超时
+	if c.requestTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.requestTimeout)
+		defer cancel()
+	}
+
+	// 设置默认分页大小
+	if pageSize == 0 {
+		pageSize = c.defaultPageSize
+	}
+
+	req := &email_client_pb.GetSentEmailsRequest{
+		Page:      page,
+		PageSize:  pageSize,
+		EmailType: emailType, // 新增的邮件类型过滤
+	}
+
+	return c.client.GetSentEmails(ctx, req)
+}
+
+// GetAllSentEmails 获取所有类型的已发送邮件（便捷方法）
+func (c *EmailServiceClient) GetAllSentEmails(ctx context.Context, page, pageSize int32) (*email_client_pb.GetSentEmailsResponse, error) {
+	return c.GetSentEmailsByType(ctx, page, pageSize, "") // 空字符串表示所有类型
+}
+
+// GetNormalEmails 获取正常业务邮件（便捷方法）
+func (c *EmailServiceClient) GetNormalEmails(ctx context.Context, page, pageSize int32) (*email_client_pb.GetSentEmailsResponse, error) {
+	return c.GetSentEmailsByType(ctx, page, pageSize, EmailTypeNormal)
+}
+
+// GetTestEmails 获取测试邮件（便捷方法）
+func (c *EmailServiceClient) GetTestEmails(ctx context.Context, page, pageSize int32) (*email_client_pb.GetSentEmailsResponse, error) {
+	return c.GetSentEmailsByType(ctx, page, pageSize, EmailTypeTest)
+}
+
 // SendEmail 调用 gRPC 服务发送单封邮件。
 func (c *EmailServiceClient) SendEmail(ctx context.Context, req *email_client_pb.SendEmailRequest) (*email_client_pb.SendEmailResponse, error) {
 	// 应用请求超时
@@ -87,6 +131,30 @@ func (c *EmailServiceClient) SendEmails(ctx context.Context, req *email_client_p
 	return c.client.SendEmails(ctx, req)
 }
 
+// SendNormalEmail 发送正常业务邮件（便捷方法）
+func (c *EmailServiceClient) SendNormalEmail(
+	ctx context.Context,
+	title string,
+	content []byte,
+	from string,
+	to []string,
+	configID string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, content, from, to, configID, EmailTypeNormal, nil)
+}
+
+// SendTestEmail 发送测试邮件（便捷方法）
+func (c *EmailServiceClient) SendTestEmail(
+	ctx context.Context,
+	title string,
+	content []byte,
+	from string,
+	to []string,
+	configID string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, content, from, to, configID, EmailTypeTest, nil)
+}
+
 // SendEmailWithAttachments 发送带附件的邮件
 // title: 邮件标题
 // content: 邮件内容
@@ -103,35 +171,7 @@ func (c *EmailServiceClient) SendEmailWithAttachments(
 	configID string,
 	attachmentPaths []string,
 ) (*email_client_pb.SendEmailResponse, error) {
-	// 应用请求超时
-	if c.requestTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, c.requestTimeout)
-		defer cancel()
-	}
-
-	// 创建邮件
-	email := &email_client_pb.Email{
-		Title:   title,
-		Content: content,
-		From:    from,
-		To:      to,
-	}
-
-	// 处理附件
-	attachments, err := c.loadAttachments(attachmentPaths)
-	if err != nil {
-		return nil, err
-	}
-	email.Attachments = attachments
-
-	// 创建并发送请求
-	req := &email_client_pb.SendEmailRequest{
-		Email:    email,
-		ConfigId: configID,
-	}
-
-	return c.client.SendEmail(ctx, req)
+	return c.sendEmailWithType(ctx, title, content, from, to, configID, EmailTypeNormal, attachmentPaths)
 }
 
 // SendEmailWithAttachment 发送带单个附件的邮件（便捷方法）
@@ -145,6 +185,77 @@ func (c *EmailServiceClient) SendEmailWithAttachment(
 	attachmentPath string,
 ) (*email_client_pb.SendEmailResponse, error) {
 	return c.SendEmailWithAttachments(ctx, title, content, from, to, configID, []string{attachmentPath})
+}
+
+// SendNormalEmailWithAttachments 发送带附件的正常业务邮件（便捷方法）
+func (c *EmailServiceClient) SendNormalEmailWithAttachments(
+	ctx context.Context,
+	title string,
+	content []byte,
+	from string,
+	to []string,
+	configID string,
+	attachmentPaths []string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, content, from, to, configID, EmailTypeNormal, attachmentPaths)
+}
+
+// SendTestEmailWithAttachments 发送带附件的测试邮件（便捷方法）
+func (c *EmailServiceClient) SendTestEmailWithAttachments(
+	ctx context.Context,
+	title string,
+	content []byte,
+	from string,
+	to []string,
+	configID string,
+	attachmentPaths []string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, content, from, to, configID, EmailTypeTest, attachmentPaths)
+}
+
+// sendEmailWithType 内部方法：发送指定类型的邮件
+func (c *EmailServiceClient) sendEmailWithType(
+	ctx context.Context,
+	title string,
+	content []byte,
+	from string,
+	to []string,
+	configID string,
+	emailType string,
+	attachmentPaths []string,
+) (*email_client_pb.SendEmailResponse, error) {
+	// 应用请求超时
+	if c.requestTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.requestTimeout)
+		defer cancel()
+	}
+
+	// 创建邮件
+	email := &email_client_pb.Email{
+		Title:     title,
+		Content:   content,
+		From:      from,
+		To:        to,
+		EmailType: emailType, // 设置邮件类型
+	}
+
+	// 处理附件
+	if len(attachmentPaths) > 0 {
+		attachments, err := c.loadAttachments(attachmentPaths)
+		if err != nil {
+			return nil, err
+		}
+		email.Attachments = attachments
+	}
+
+	// 创建并发送请求
+	req := &email_client_pb.SendEmailRequest{
+		Email:    email,
+		ConfigId: configID,
+	}
+
+	return c.client.SendEmail(ctx, req)
 }
 
 // loadAttachments 从文件路径加载附件
