@@ -99,9 +99,9 @@ func (c *ConfigServiceClient) ListConfigs(ctx context.Context, req *email_client
 		defer cancel()
 	}
 
-	// 如果请求中未设置 PageSize，可以使用默认值
-	if req.GetPageSize() == 0 {
-		req.PageSize = c.defaultPageSize
+	// 如果请求中未设置 Limit，可以使用默认值
+	if req.GetLimit() == 0 {
+		req.Limit = c.defaultPageSize
 	}
 
 	return c.client.ListConfigs(ctx, req)

@@ -63,16 +63,16 @@ func (c *EmailServiceClient) GetSentEmails(ctx context.Context, req *email_clien
 		defer cancel()
 	}
 
-	// 如果请求中未设置 PageSize，可以使用默认值
-	if req.GetPageSize() == 0 {
-		req.PageSize = c.defaultPageSize
+	// 如果请求中未设置 Limit，可以使用默认值
+	if req.GetLimit() == 0 {
+		req.Limit = c.defaultPageSize
 	}
 
 	return c.client.GetSentEmails(ctx, req)
 }
 
 // GetSentEmailsByType 按邮件类型获取已发送邮件列表（便捷方法）
-func (c *EmailServiceClient) GetSentEmailsByType(ctx context.Context, page, pageSize int32, emailType string) (*email_client_pb.GetSentEmailsResponse, error) {
+func (c *EmailServiceClient) GetSentEmailsByType(ctx context.Context, cursor string, limit int32, emailType string) (*email_client_pb.GetSentEmailsResponse, error) {
 	// 应用请求超时
 	if c.requestTimeout > 0 {
 		var cancel context.CancelFunc
@@ -81,13 +81,13 @@ func (c *EmailServiceClient) GetSentEmailsByType(ctx context.Context, page, page
 	}
 
 	// 设置默认分页大小
-	if pageSize == 0 {
-		pageSize = c.defaultPageSize
+	if limit == 0 {
+		limit = c.defaultPageSize
 	}
 
 	req := &email_client_pb.GetSentEmailsRequest{
-		Page:      page,
-		PageSize:  pageSize,
+		Cursor:    cursor,
+		Limit:     limit,
 		EmailType: emailType, // 新增的邮件类型过滤
 	}
 
@@ -95,18 +95,18 @@ func (c *EmailServiceClient) GetSentEmailsByType(ctx context.Context, page, page
 }
 
 // GetAllSentEmails 获取所有类型的已发送邮件（便捷方法）
-func (c *EmailServiceClient) GetAllSentEmails(ctx context.Context, page, pageSize int32) (*email_client_pb.GetSentEmailsResponse, error) {
-	return c.GetSentEmailsByType(ctx, page, pageSize, "") // 空字符串表示所有类型
+func (c *EmailServiceClient) GetAllSentEmails(ctx context.Context, cursor string, limit int32) (*email_client_pb.GetSentEmailsResponse, error) {
+	return c.GetSentEmailsByType(ctx, cursor, limit, "") // 空字符串表示所有类型
 }
 
 // GetNormalEmails 获取正常业务邮件（便捷方法）
-func (c *EmailServiceClient) GetNormalEmails(ctx context.Context, page, pageSize int32) (*email_client_pb.GetSentEmailsResponse, error) {
-	return c.GetSentEmailsByType(ctx, page, pageSize, EmailTypeNormal)
+func (c *EmailServiceClient) GetNormalEmails(ctx context.Context, cursor string, limit int32) (*email_client_pb.GetSentEmailsResponse, error) {
+	return c.GetSentEmailsByType(ctx, cursor, limit, EmailTypeNormal)
 }
 
 // GetTestEmails 获取测试邮件（便捷方法）
-func (c *EmailServiceClient) GetTestEmails(ctx context.Context, page, pageSize int32) (*email_client_pb.GetSentEmailsResponse, error) {
-	return c.GetSentEmailsByType(ctx, page, pageSize, EmailTypeTest)
+func (c *EmailServiceClient) GetTestEmails(ctx context.Context, cursor string, limit int32) (*email_client_pb.GetSentEmailsResponse, error) {
+	return c.GetSentEmailsByType(ctx, cursor, limit, EmailTypeTest)
 }
 
 // SendEmail 调用 gRPC 服务发送单封邮件。

@@ -170,8 +170,26 @@ func TestEmailTypes(t *testing.T) {
 			SentAt:    timestamppb.Now(),
 		}
 
+		// 验证邮件类型
 		if normalEmail.EmailType != services.EmailTypeNormal {
 			t.Errorf("期望邮件类型为'%s'，得到'%s'", services.EmailTypeNormal, normalEmail.EmailType)
+		}
+
+		// 验证其他关键字段
+		if normalEmail.Title != "正常业务邮件" {
+			t.Errorf("期望标题为'正常业务邮件'，得到'%s'", normalEmail.Title)
+		}
+		if normalEmail.From != "sender@example.com" {
+			t.Errorf("期望发件人为'sender@example.com'，得到'%s'", normalEmail.From)
+		}
+		if len(normalEmail.To) != 1 || normalEmail.To[0] != "recipient@example.com" {
+			t.Errorf("期望收件人为'recipient@example.com'，得到'%v'", normalEmail.To)
+		}
+		if len(normalEmail.Content) == 0 {
+			t.Errorf("邮件内容不应为空")
+		}
+		if normalEmail.SentAt == nil {
+			t.Errorf("发送时间不应为空")
 		}
 
 		// 测试测试邮件
@@ -184,8 +202,26 @@ func TestEmailTypes(t *testing.T) {
 			SentAt:    timestamppb.Now(),
 		}
 
+		// 验证邮件类型
 		if testEmail.EmailType != services.EmailTypeTest {
 			t.Errorf("期望邮件类型为'%s'，得到'%s'", services.EmailTypeTest, testEmail.EmailType)
+		}
+
+		// 验证其他关键字段
+		if testEmail.Title != "配置测试邮件" {
+			t.Errorf("期望标题为'配置测试邮件'，得到'%s'", testEmail.Title)
+		}
+		if testEmail.From != "sender@example.com" {
+			t.Errorf("期望发件人为'sender@example.com'，得到'%s'", testEmail.From)
+		}
+		if len(testEmail.To) != 1 || testEmail.To[0] != "test@example.com" {
+			t.Errorf("期望收件人为'test@example.com'，得到'%v'", testEmail.To)
+		}
+		if len(testEmail.Content) == 0 {
+			t.Errorf("邮件内容不应为空")
+		}
+		if testEmail.SentAt == nil {
+			t.Errorf("发送时间不应为空")
 		}
 	})
 
@@ -193,35 +229,56 @@ func TestEmailTypes(t *testing.T) {
 	t.Run("邮件查询过滤参数", func(t *testing.T) {
 		// 测试获取所有邮件的请求
 		allEmailsReq := &email_client_pb.GetSentEmailsRequest{
-			Page:      1,
-			PageSize:  10,
+			Cursor:    "",
+			Limit:     10,
 			EmailType: "", // 空字符串表示所有类型
 		}
 
+		// 验证请求参数
 		if allEmailsReq.EmailType != "" {
 			t.Errorf("获取所有邮件时EmailType应为空字符串，得到'%s'", allEmailsReq.EmailType)
+		}
+		if allEmailsReq.Cursor != "" {
+			t.Errorf("期望Cursor为空字符串，得到'%s'", allEmailsReq.Cursor)
+		}
+		if allEmailsReq.Limit != 10 {
+			t.Errorf("期望Limit为10，得到%d", allEmailsReq.Limit)
 		}
 
 		// 测试获取正常邮件的请求
 		normalEmailsReq := &email_client_pb.GetSentEmailsRequest{
-			Page:      1,
-			PageSize:  10,
+			Cursor:    "",
+			Limit:     10,
 			EmailType: services.EmailTypeNormal,
 		}
 
+		// 验证请求参数
 		if normalEmailsReq.EmailType != services.EmailTypeNormal {
 			t.Errorf("获取正常邮件时EmailType应为'%s'，得到'%s'", services.EmailTypeNormal, normalEmailsReq.EmailType)
+		}
+		if normalEmailsReq.Cursor != "" {
+			t.Errorf("期望Cursor为空字符串，得到'%s'", normalEmailsReq.Cursor)
+		}
+		if normalEmailsReq.Limit != 10 {
+			t.Errorf("期望Limit为10，得到%d", normalEmailsReq.Limit)
 		}
 
 		// 测试获取测试邮件的请求
 		testEmailsReq := &email_client_pb.GetSentEmailsRequest{
-			Page:      1,
-			PageSize:  10,
+			Cursor:    "",
+			Limit:     10,
 			EmailType: services.EmailTypeTest,
 		}
 
+		// 验证请求参数
 		if testEmailsReq.EmailType != services.EmailTypeTest {
 			t.Errorf("获取测试邮件时EmailType应为'%s'，得到'%s'", services.EmailTypeTest, testEmailsReq.EmailType)
+		}
+		if testEmailsReq.Cursor != "" {
+			t.Errorf("期望Cursor为空字符串，得到'%s'", testEmailsReq.Cursor)
+		}
+		if testEmailsReq.Limit != 10 {
+			t.Errorf("期望Limit为10，得到%d", testEmailsReq.Limit)
 		}
 	})
 }
@@ -391,7 +448,7 @@ func Example_filteringEmailsByType() {
 	ctx := context.Background()
 
 	// 示例1：获取所有类型的邮件
-	allEmails, err := client.EmailService().GetAllSentEmails(ctx, 1, 10)
+	allEmails, err := client.EmailService().GetAllSentEmails(ctx, "", 10)
 	if err != nil {
 		// 处理错误
 		return
@@ -400,7 +457,7 @@ func Example_filteringEmailsByType() {
 	_ = allEmails
 
 	// 示例2：只获取正常业务邮件
-	normalEmails, err := client.EmailService().GetNormalEmails(ctx, 1, 10)
+	normalEmails, err := client.EmailService().GetNormalEmails(ctx, "", 10)
 	if err != nil {
 		// 处理错误
 		return
@@ -409,7 +466,7 @@ func Example_filteringEmailsByType() {
 	_ = normalEmails
 
 	// 示例3：只获取测试邮件
-	testEmails, err := client.EmailService().GetTestEmails(ctx, 1, 10)
+	testEmails, err := client.EmailService().GetTestEmails(ctx, "", 10)
 	if err != nil {
 		// 处理错误
 		return
@@ -418,7 +475,7 @@ func Example_filteringEmailsByType() {
 	_ = testEmails
 
 	// 示例4：使用通用方法按类型过滤
-	customFilterEmails, err := client.EmailService().GetSentEmailsByType(ctx, 1, 5, services.EmailTypeNormal)
+	customFilterEmails, err := client.EmailService().GetSentEmailsByType(ctx, "", 5, services.EmailTypeNormal)
 	if err != nil {
 		// 处理错误
 		return
@@ -520,8 +577,8 @@ func createMockEmail(title, emailType string) *email_client_pb.Email {
 // 辅助函数：创建模拟查询请求
 func createMockGetRequest(emailType string) *email_client_pb.GetSentEmailsRequest {
 	return &email_client_pb.GetSentEmailsRequest{
-		Page:      1,
-		PageSize:  10,
+		Cursor:    "",
+		Limit:     10,
 		EmailType: emailType,
 	}
 }

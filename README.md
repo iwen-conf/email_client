@@ -261,8 +261,8 @@ for _, email := range normalEmails.Emails {
 // 获取已发送邮件列表
 ctx := context.Background()
 req := &email_client_pb.GetSentEmailsRequest{
-    Page:     1,
-    PageSize: 20,
+    Cursor:   "",    // 空字符串表示从最新开始查询
+    Limit:    20,    // 返回记录数限制
 }
 emails, err := emailClient.EmailService().GetSentEmails(ctx, req)
 if err != nil {
@@ -329,8 +329,8 @@ createResp, err := emailClient.ConfigService().CreateConfig(ctx, createReq)
 
 // 获取配置列表
 listReq := &email_client_pb.ListConfigsRequest{
-    Page:     1,
-    PageSize: 20,
+    Cursor:   "",    // 空字符串表示从最新开始查询
+    Limit:    20,    // 返回记录数限制
 }
 configs, err := emailClient.ConfigService().ListConfigs(ctx, listReq)
 ```

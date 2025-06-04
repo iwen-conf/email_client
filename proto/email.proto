@@ -6,7 +6,6 @@ option go_package = "proto/email_client_pb";
 
 package email;
 
-
 // EmailService 定义邮件相关操作的服务
 service EmailService {
   // GetSentEmails 获取已发送邮件列表，支持分页查询
@@ -109,14 +108,16 @@ message ConfigResponse {
 
 // ListConfigsRequest 获取邮件配置列表的请求
 message ListConfigsRequest {
-  int32 page = 1;            // 页码，从1开始
-  int32 page_size = 2;       // 每页记录数
+  string cursor = 1;             // 游标，用于分页查询。为空表示从最新开始查询
+  int32 limit = 2;               // 返回记录数限制，默认20，最大50
 }
 
 // ListConfigsResponse 获取邮件配置列表的响应
 message ListConfigsResponse {
   repeated EmailConfig configs = 1; // 配置列表
-  int32 total = 2;           // 总记录数
+  string next_cursor = 2;        // 下一页的游标，为空表示没有更多数据
+  bool has_more = 3;             // 是否还有更多数据
+  int32 total = 4;               // 总记录数（可选）
 }
 
 // TestConfigRequest 测试邮件配置的请求
@@ -132,15 +133,17 @@ message TestConfigResponse {
 
 // GetSentEmailsRequest 获取已发送邮件列表的请求
 message GetSentEmailsRequest {
-  int32 page = 1;            // 页码，从1开始
-  int32 page_size = 2;       // 每页记录数
-  string email_type = 3;     // 邮件类型过滤，为空表示所有类型
+  string cursor = 1;             // 游标，用于分页查询。为空表示从最新开始查询
+  int32 limit = 2;               // 返回记录数限制，默认20，最大100
+  string email_type = 3;         // 邮件类型过滤，为空表示所有类型
 }
 
 // GetSentEmailsResponse 获取已发送邮件列表的响应
 message GetSentEmailsResponse {
-  repeated Email emails = 1; // 已发送邮件列表
-  int32 total = 2;           // 总记录数
+  repeated Email emails = 1;     // 已发送邮件列表
+  string next_cursor = 2;        // 下一页的游标，为空表示没有更多数据
+  bool has_more = 3;             // 是否还有更多数据
+  int32 total = 4;               // 总记录数（可选，性能考虑可能不返回）
 }
 
 // SendEmailRequest 发送单封邮件的请求

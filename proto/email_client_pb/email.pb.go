@@ -671,8 +671,8 @@ func (x *ConfigResponse) GetConfig() *EmailConfig {
 // ListConfigsRequest 获取邮件配置列表的请求
 type ListConfigsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`                         // 页码，从1开始
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"` // 每页记录数
+	Cursor        string                 `protobuf:"bytes,1,opt,name=cursor,proto3" json:"cursor,omitempty"` // 游标，用于分页查询。为空表示从最新开始查询
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`  // 返回记录数限制，默认20，最大50
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -707,16 +707,16 @@ func (*ListConfigsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_email_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *ListConfigsRequest) GetPage() int32 {
+func (x *ListConfigsRequest) GetCursor() string {
 	if x != nil {
-		return x.Page
+		return x.Cursor
 	}
-	return 0
+	return ""
 }
 
-func (x *ListConfigsRequest) GetPageSize() int32 {
+func (x *ListConfigsRequest) GetLimit() int32 {
 	if x != nil {
-		return x.PageSize
+		return x.Limit
 	}
 	return 0
 }
@@ -724,8 +724,10 @@ func (x *ListConfigsRequest) GetPageSize() int32 {
 // ListConfigsResponse 获取邮件配置列表的响应
 type ListConfigsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Configs       []*EmailConfig         `protobuf:"bytes,1,rep,name=configs,proto3" json:"configs,omitempty"` // 配置列表
-	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`    // 总记录数
+	Configs       []*EmailConfig         `protobuf:"bytes,1,rep,name=configs,proto3" json:"configs,omitempty"`                         // 配置列表
+	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"` // 下一页的游标，为空表示没有更多数据
+	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`         // 是否还有更多数据
+	Total         int32                  `protobuf:"varint,4,opt,name=total,proto3" json:"total,omitempty"`                            // 总记录数（可选）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -765,6 +767,20 @@ func (x *ListConfigsResponse) GetConfigs() []*EmailConfig {
 		return x.Configs
 	}
 	return nil
+}
+
+func (x *ListConfigsResponse) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
+func (x *ListConfigsResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 func (x *ListConfigsResponse) GetTotal() int32 {
@@ -875,8 +891,8 @@ func (x *TestConfigResponse) GetMessage() string {
 // GetSentEmailsRequest 获取已发送邮件列表的请求
 type GetSentEmailsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`                           // 页码，从1开始
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`   // 每页记录数
+	Cursor        string                 `protobuf:"bytes,1,opt,name=cursor,proto3" json:"cursor,omitempty"`                        // 游标，用于分页查询。为空表示从最新开始查询
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`                         // 返回记录数限制，默认20，最大100
 	EmailType     string                 `protobuf:"bytes,3,opt,name=email_type,json=emailType,proto3" json:"email_type,omitempty"` // 邮件类型过滤，为空表示所有类型
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -912,16 +928,16 @@ func (*GetSentEmailsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_email_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *GetSentEmailsRequest) GetPage() int32 {
+func (x *GetSentEmailsRequest) GetCursor() string {
 	if x != nil {
-		return x.Page
+		return x.Cursor
 	}
-	return 0
+	return ""
 }
 
-func (x *GetSentEmailsRequest) GetPageSize() int32 {
+func (x *GetSentEmailsRequest) GetLimit() int32 {
 	if x != nil {
-		return x.PageSize
+		return x.Limit
 	}
 	return 0
 }
@@ -936,8 +952,10 @@ func (x *GetSentEmailsRequest) GetEmailType() string {
 // GetSentEmailsResponse 获取已发送邮件列表的响应
 type GetSentEmailsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Emails        []*Email               `protobuf:"bytes,1,rep,name=emails,proto3" json:"emails,omitempty"` // 已发送邮件列表
-	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`  // 总记录数
+	Emails        []*Email               `protobuf:"bytes,1,rep,name=emails,proto3" json:"emails,omitempty"`                           // 已发送邮件列表
+	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"` // 下一页的游标，为空表示没有更多数据
+	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`         // 是否还有更多数据
+	Total         int32                  `protobuf:"varint,4,opt,name=total,proto3" json:"total,omitempty"`                            // 总记录数（可选，性能考虑可能不返回）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -977,6 +995,20 @@ func (x *GetSentEmailsResponse) GetEmails() []*Email {
 		return x.Emails
 	}
 	return nil
+}
+
+func (x *GetSentEmailsResponse) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
+func (x *GetSentEmailsResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 func (x *GetSentEmailsResponse) GetTotal() int32 {
@@ -1269,26 +1301,32 @@ const file_proto_email_proto_rawDesc = "" +
 	"\x0eConfigResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12*\n" +
-	"\x06config\x18\x03 \x01(\v2\x12.email.EmailConfigR\x06config\"E\n" +
-	"\x12ListConfigsRequest\x12\x12\n" +
-	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"Y\n" +
+	"\x06config\x18\x03 \x01(\v2\x12.email.EmailConfigR\x06config\"B\n" +
+	"\x12ListConfigsRequest\x12\x16\n" +
+	"\x06cursor\x18\x01 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\x95\x01\n" +
 	"\x13ListConfigsResponse\x12,\n" +
-	"\aconfigs\x18\x01 \x03(\v2\x12.email.EmailConfigR\aconfigs\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"?\n" +
+	"\aconfigs\x18\x01 \x03(\v2\x12.email.EmailConfigR\aconfigs\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\x12\x14\n" +
+	"\x05total\x18\x04 \x01(\x05R\x05total\"?\n" +
 	"\x11TestConfigRequest\x12*\n" +
 	"\x06config\x18\x01 \x01(\v2\x12.email.EmailConfigR\x06config\"H\n" +
 	"\x12TestConfigResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"f\n" +
-	"\x14GetSentEmailsRequest\x12\x12\n" +
-	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"c\n" +
+	"\x14GetSentEmailsRequest\x12\x16\n" +
+	"\x06cursor\x18\x01 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x1d\n" +
 	"\n" +
-	"email_type\x18\x03 \x01(\tR\temailType\"S\n" +
+	"email_type\x18\x03 \x01(\tR\temailType\"\x8f\x01\n" +
 	"\x15GetSentEmailsResponse\x12$\n" +
-	"\x06emails\x18\x01 \x03(\v2\f.email.EmailR\x06emails\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"S\n" +
+	"\x06emails\x18\x01 \x03(\v2\f.email.EmailR\x06emails\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\x12\x14\n" +
+	"\x05total\x18\x04 \x01(\x05R\x05total\"S\n" +
 	"\x10SendEmailRequest\x12\"\n" +
 	"\x05email\x18\x01 \x01(\v2\f.email.EmailR\x05email\x12\x1b\n" +
 	"\tconfig_id\x18\x02 \x01(\tR\bconfigId\"b\n" +
