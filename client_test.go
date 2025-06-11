@@ -484,6 +484,49 @@ func Example_filteringEmailsByType() {
 	_ = customFilterEmails
 }
 
+// Example_checkingServiceHealth 展示如何使用健康检查服务
+func Example_checkingServiceHealth() {
+	// 创建一个邮件客户端
+	grpcAddress := "email-service:50051" // 实际使用时替换为真实地址
+	requestTimeout := 10 * time.Second
+	defaultPageSize := int32(20)
+	debug := true
+
+	client, err := client.NewEmailClient(grpcAddress, requestTimeout, defaultPageSize, debug)
+	if err != nil {
+		// 在实际应用中，应适当处理错误
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+
+	// 示例1：检查整体服务健康状况
+	response, err := client.CheckHealth(ctx, "")
+	if err != nil {
+		// 处理错误
+		return
+	}
+
+	// 根据状态进行处理
+	if response.Status == email_client_pb.HealthCheckResponse_SERVING {
+		// 服务正常
+	} else {
+		// 服务异常，可以记录日志或告警
+	}
+
+	// 示例2：检查特定服务（如 "EmailService"）的健康状况
+	emailServiceHealth, err := client.CheckHealth(ctx, "EmailService")
+	if err != nil {
+		// 处理错误
+		return
+	}
+
+	if emailServiceHealth.Status != email_client_pb.HealthCheckResponse_SERVING {
+		// EmailService 子服务异常
+	}
+}
+
 // TestSendEmailWithAttachments 测试发送带附件的功能
 func TestSendEmailWithAttachments(t *testing.T) {
 	// 由于该测试需要实际的服务器连接和文件，这里我们只验证文件处理逻辑

@@ -171,3 +171,27 @@ message SendEmailsResponse {
   string message = 2;        // 发送结果提示信息
   repeated string email_ids = 3; // 发送成功的邮件ID列表
 }
+
+// HealthService 定义健康检查服务
+service HealthService {
+  // Check 检查服务的健康状态
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// HealthCheckRequest 健康检查请求
+message HealthCheckRequest {
+  // service 是要检查的服务名称。如果为空，则检查整体服务器健康状况。
+  string service = 1;
+}
+
+// HealthCheckResponse 健康检查响应
+message HealthCheckResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+    SERVING_UNHEALTHY = 3; // 服务正在运行，但内部存在问题
+  }
+  ServingStatus status = 1; // 服务的状态
+  string message = 2;       // 额外的状态信息
+}

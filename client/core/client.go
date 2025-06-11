@@ -7,6 +7,7 @@ import (
 
 	"github.com/iwen-conf/email_client/client/conn"
 	"github.com/iwen-conf/email_client/client/services"
+	"github.com/iwen-conf/email_client/proto/email_client_pb"
 )
 
 // EmailClient 是一个高级客户端，封装了与邮件服务和配置服务的交互。
@@ -14,6 +15,7 @@ type EmailClient struct {
 	connManager     *conn.Manager
 	emailService    *services.EmailServiceClient
 	configService   *services.ConfigServiceClient
+	healthService   *services.HealthServiceClient
 	requestTimeout  time.Duration
 	defaultPageSize int32
 	debug           bool
@@ -58,17 +60,21 @@ func NewEmailClient(grpcAddress string, requestTimeout time.Duration, defaultPag
 	// 创建内部的服务客户端实例
 	emailService := services.NewEmailServiceClient(connManager.GetConn(), requestTimeout, defaultPageSize, debug)
 	configService := services.NewConfigServiceClient(connManager.GetConn(), requestTimeout, defaultPageSize, debug)
+	healthService := services.NewHealthServiceClient(connManager.GetConn(), requestTimeout, debug)
 
-	client := &EmailClient{
+	if debug {
+		log.Printf("[INFO] NewEmailClient: 成功创建所有服务客户端 (Email, Config, Health)")
+	}
+
+	return &EmailClient{
 		connManager:     connManager,
 		emailService:    emailService,
 		configService:   configService,
+		healthService:   healthService,
 		requestTimeout:  requestTimeout,
 		defaultPageSize: defaultPageSize,
 		debug:           debug,
-	}
-
-	return client, nil
+	}, nil
 }
 
 // Close 关闭 EmailClient 管理的共享 gRPC 连接。
@@ -89,6 +95,20 @@ func (c *EmailClient) ConfigService() *services.ConfigServiceClient {
 	return c.configService
 }
 
+// HealthService 返回健康检查服务的客户端实例
+func (c *EmailClient) HealthService() *services.HealthServiceClient {
+	return c.healthService
+}
+
+// CheckHealth 是一个便捷方法，用于检查整体服务的健康状况。
+// serviceName 是要检查的服务名称，如果为空，则检查整体服务器健康状况。
+func (c *EmailClient) CheckHealth(ctx context.Context, serviceName string) (*email_client_pb.HealthCheckResponse, error) {
+	if c.healthService == nil {
+		return nil, ErrHealthServiceNotInitialized
+	}
+	return c.healthService.Check(ctx, serviceName)
+}
+
 // SetRequestTimeout 设置所有内部服务客户端的默认请求超时时间。
 func (c *EmailClient) SetRequestTimeout(timeout time.Duration) {
 	c.requestTimeout = timeout
@@ -97,6 +117,10 @@ func (c *EmailClient) SetRequestTimeout(timeout time.Duration) {
 	}
 	if c.configService != nil {
 		c.configService.SetRequestTimeout(timeout)
+	}
+	if c.healthService != nil {
+		// 假设 HealthServiceClient 也有 SetRequestTimeout 方法
+		// c.healthService.SetRequestTimeout(timeout)
 	}
 }
 
