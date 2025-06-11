@@ -71,6 +71,58 @@ func (EmailConfig_Protocol) EnumDescriptor() ([]byte, []int) {
 	return file_proto_email_proto_rawDescGZIP(), []int{2, 0}
 }
 
+type HealthCheckResponse_ServingStatus int32
+
+const (
+	HealthCheckResponse_UNKNOWN           HealthCheckResponse_ServingStatus = 0
+	HealthCheckResponse_SERVING           HealthCheckResponse_ServingStatus = 1
+	HealthCheckResponse_NOT_SERVING       HealthCheckResponse_ServingStatus = 2
+	HealthCheckResponse_SERVING_UNHEALTHY HealthCheckResponse_ServingStatus = 3 // 服务正在运行，但内部存在问题
+)
+
+// Enum value maps for HealthCheckResponse_ServingStatus.
+var (
+	HealthCheckResponse_ServingStatus_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "SERVING",
+		2: "NOT_SERVING",
+		3: "SERVING_UNHEALTHY",
+	}
+	HealthCheckResponse_ServingStatus_value = map[string]int32{
+		"UNKNOWN":           0,
+		"SERVING":           1,
+		"NOT_SERVING":       2,
+		"SERVING_UNHEALTHY": 3,
+	}
+)
+
+func (x HealthCheckResponse_ServingStatus) Enum() *HealthCheckResponse_ServingStatus {
+	p := new(HealthCheckResponse_ServingStatus)
+	*p = x
+	return p
+}
+
+func (x HealthCheckResponse_ServingStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HealthCheckResponse_ServingStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_email_proto_enumTypes[1].Descriptor()
+}
+
+func (HealthCheckResponse_ServingStatus) Type() protoreflect.EnumType {
+	return &file_proto_email_proto_enumTypes[1]
+}
+
+func (x HealthCheckResponse_ServingStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HealthCheckResponse_ServingStatus.Descriptor instead.
+func (HealthCheckResponse_ServingStatus) EnumDescriptor() ([]byte, []int) {
+	return file_proto_email_proto_rawDescGZIP(), []int{20, 0}
+}
+
 // Attachment 代表一个邮件附件
 type Attachment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1246,6 +1298,105 @@ func (x *SendEmailsResponse) GetEmailIds() []string {
 	return nil
 }
 
+// HealthCheckRequest 健康检查请求
+type HealthCheckRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service 是要检查的服务名称。如果为空，则检查整体服务器健康状况。
+	Service       string `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HealthCheckRequest) Reset() {
+	*x = HealthCheckRequest{}
+	mi := &file_proto_email_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HealthCheckRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HealthCheckRequest) ProtoMessage() {}
+
+func (x *HealthCheckRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_email_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HealthCheckRequest.ProtoReflect.Descriptor instead.
+func (*HealthCheckRequest) Descriptor() ([]byte, []int) {
+	return file_proto_email_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *HealthCheckRequest) GetService() string {
+	if x != nil {
+		return x.Service
+	}
+	return ""
+}
+
+// HealthCheckResponse 健康检查响应
+type HealthCheckResponse struct {
+	state         protoimpl.MessageState            `protogen:"open.v1"`
+	Status        HealthCheckResponse_ServingStatus `protobuf:"varint,1,opt,name=status,proto3,enum=email.HealthCheckResponse_ServingStatus" json:"status,omitempty"` // 服务的状态
+	Message       string                            `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`                                             // 额外的状态信息
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HealthCheckResponse) Reset() {
+	*x = HealthCheckResponse{}
+	mi := &file_proto_email_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HealthCheckResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HealthCheckResponse) ProtoMessage() {}
+
+func (x *HealthCheckResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_email_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HealthCheckResponse.ProtoReflect.Descriptor instead.
+func (*HealthCheckResponse) Descriptor() ([]byte, []int) {
+	return file_proto_email_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *HealthCheckResponse) GetStatus() HealthCheckResponse_ServingStatus {
+	if x != nil {
+		return x.Status
+	}
+	return HealthCheckResponse_UNKNOWN
+}
+
+func (x *HealthCheckResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_proto_email_proto protoreflect.FileDescriptor
 
 const file_proto_email_proto_rawDesc = "" +
@@ -1340,7 +1491,17 @@ const file_proto_email_proto_rawDesc = "" +
 	"\x12SendEmailsResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1b\n" +
-	"\temail_ids\x18\x03 \x03(\tR\bemailIds2\xdd\x01\n" +
+	"\temail_ids\x18\x03 \x03(\tR\bemailIds\".\n" +
+	"\x12HealthCheckRequest\x12\x18\n" +
+	"\aservice\x18\x01 \x01(\tR\aservice\"\xc4\x01\n" +
+	"\x13HealthCheckResponse\x12@\n" +
+	"\x06status\x18\x01 \x01(\x0e2(.email.HealthCheckResponse.ServingStatusR\x06status\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"Q\n" +
+	"\rServingStatus\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\v\n" +
+	"\aSERVING\x10\x01\x12\x0f\n" +
+	"\vNOT_SERVING\x10\x02\x12\x15\n" +
+	"\x11SERVING_UNHEALTHY\x10\x032\xdd\x01\n" +
 	"\fEmailService\x12J\n" +
 	"\rGetSentEmails\x12\x1b.email.GetSentEmailsRequest\x1a\x1c.email.GetSentEmailsResponse\x12>\n" +
 	"\tSendEmail\x12\x17.email.SendEmailRequest\x1a\x18.email.SendEmailResponse\x12A\n" +
@@ -1353,7 +1514,9 @@ const file_proto_email_proto_rawDesc = "" +
 	"\fDeleteConfig\x12\x1a.email.DeleteConfigRequest\x1a\x1b.email.DeleteConfigResponse\x12D\n" +
 	"\vListConfigs\x12\x19.email.ListConfigsRequest\x1a\x1a.email.ListConfigsResponse\x12A\n" +
 	"\n" +
-	"TestConfig\x12\x18.email.TestConfigRequest\x1a\x19.email.TestConfigResponseB\x17Z\x15proto/email_client_pbb\x06proto3"
+	"TestConfig\x12\x18.email.TestConfigRequest\x1a\x19.email.TestConfigResponse2O\n" +
+	"\rHealthService\x12>\n" +
+	"\x05Check\x12\x19.email.HealthCheckRequest\x1a\x1a.email.HealthCheckResponseB\x17Z\x15proto/email_client_pbb\x06proto3"
 
 var (
 	file_proto_email_proto_rawDescOnce sync.Once
@@ -1367,68 +1530,74 @@ func file_proto_email_proto_rawDescGZIP() []byte {
 	return file_proto_email_proto_rawDescData
 }
 
-var file_proto_email_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_email_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_proto_email_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_proto_email_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_proto_email_proto_goTypes = []any{
-	(EmailConfig_Protocol)(0),     // 0: email.EmailConfig.Protocol
-	(*Attachment)(nil),            // 1: email.Attachment
-	(*Email)(nil),                 // 2: email.Email
-	(*EmailConfig)(nil),           // 3: email.EmailConfig
-	(*CreateConfigRequest)(nil),   // 4: email.CreateConfigRequest
-	(*GetConfigRequest)(nil),      // 5: email.GetConfigRequest
-	(*UpdateConfigRequest)(nil),   // 6: email.UpdateConfigRequest
-	(*DeleteConfigRequest)(nil),   // 7: email.DeleteConfigRequest
-	(*DeleteConfigResponse)(nil),  // 8: email.DeleteConfigResponse
-	(*ConfigResponse)(nil),        // 9: email.ConfigResponse
-	(*ListConfigsRequest)(nil),    // 10: email.ListConfigsRequest
-	(*ListConfigsResponse)(nil),   // 11: email.ListConfigsResponse
-	(*TestConfigRequest)(nil),     // 12: email.TestConfigRequest
-	(*TestConfigResponse)(nil),    // 13: email.TestConfigResponse
-	(*GetSentEmailsRequest)(nil),  // 14: email.GetSentEmailsRequest
-	(*GetSentEmailsResponse)(nil), // 15: email.GetSentEmailsResponse
-	(*SendEmailRequest)(nil),      // 16: email.SendEmailRequest
-	(*SendEmailResponse)(nil),     // 17: email.SendEmailResponse
-	(*SendEmailsRequest)(nil),     // 18: email.SendEmailsRequest
-	(*SendEmailsResponse)(nil),    // 19: email.SendEmailsResponse
-	(*timestamppb.Timestamp)(nil), // 20: google.protobuf.Timestamp
+	(EmailConfig_Protocol)(0),              // 0: email.EmailConfig.Protocol
+	(HealthCheckResponse_ServingStatus)(0), // 1: email.HealthCheckResponse.ServingStatus
+	(*Attachment)(nil),                     // 2: email.Attachment
+	(*Email)(nil),                          // 3: email.Email
+	(*EmailConfig)(nil),                    // 4: email.EmailConfig
+	(*CreateConfigRequest)(nil),            // 5: email.CreateConfigRequest
+	(*GetConfigRequest)(nil),               // 6: email.GetConfigRequest
+	(*UpdateConfigRequest)(nil),            // 7: email.UpdateConfigRequest
+	(*DeleteConfigRequest)(nil),            // 8: email.DeleteConfigRequest
+	(*DeleteConfigResponse)(nil),           // 9: email.DeleteConfigResponse
+	(*ConfigResponse)(nil),                 // 10: email.ConfigResponse
+	(*ListConfigsRequest)(nil),             // 11: email.ListConfigsRequest
+	(*ListConfigsResponse)(nil),            // 12: email.ListConfigsResponse
+	(*TestConfigRequest)(nil),              // 13: email.TestConfigRequest
+	(*TestConfigResponse)(nil),             // 14: email.TestConfigResponse
+	(*GetSentEmailsRequest)(nil),           // 15: email.GetSentEmailsRequest
+	(*GetSentEmailsResponse)(nil),          // 16: email.GetSentEmailsResponse
+	(*SendEmailRequest)(nil),               // 17: email.SendEmailRequest
+	(*SendEmailResponse)(nil),              // 18: email.SendEmailResponse
+	(*SendEmailsRequest)(nil),              // 19: email.SendEmailsRequest
+	(*SendEmailsResponse)(nil),             // 20: email.SendEmailsResponse
+	(*HealthCheckRequest)(nil),             // 21: email.HealthCheckRequest
+	(*HealthCheckResponse)(nil),            // 22: email.HealthCheckResponse
+	(*timestamppb.Timestamp)(nil),          // 23: google.protobuf.Timestamp
 }
 var file_proto_email_proto_depIdxs = []int32{
-	20, // 0: email.Email.sent_at:type_name -> google.protobuf.Timestamp
-	1,  // 1: email.Email.attachments:type_name -> email.Attachment
+	23, // 0: email.Email.sent_at:type_name -> google.protobuf.Timestamp
+	2,  // 1: email.Email.attachments:type_name -> email.Attachment
 	0,  // 2: email.EmailConfig.protocol:type_name -> email.EmailConfig.Protocol
-	20, // 3: email.EmailConfig.created_at:type_name -> google.protobuf.Timestamp
-	20, // 4: email.EmailConfig.updated_at:type_name -> google.protobuf.Timestamp
-	3,  // 5: email.CreateConfigRequest.config:type_name -> email.EmailConfig
-	3,  // 6: email.UpdateConfigRequest.config:type_name -> email.EmailConfig
-	3,  // 7: email.ConfigResponse.config:type_name -> email.EmailConfig
-	3,  // 8: email.ListConfigsResponse.configs:type_name -> email.EmailConfig
-	3,  // 9: email.TestConfigRequest.config:type_name -> email.EmailConfig
-	2,  // 10: email.GetSentEmailsResponse.emails:type_name -> email.Email
-	2,  // 11: email.SendEmailRequest.email:type_name -> email.Email
-	2,  // 12: email.SendEmailsRequest.emails:type_name -> email.Email
-	14, // 13: email.EmailService.GetSentEmails:input_type -> email.GetSentEmailsRequest
-	16, // 14: email.EmailService.SendEmail:input_type -> email.SendEmailRequest
-	18, // 15: email.EmailService.SendEmails:input_type -> email.SendEmailsRequest
-	4,  // 16: email.EmailConfigService.CreateConfig:input_type -> email.CreateConfigRequest
-	5,  // 17: email.EmailConfigService.GetConfig:input_type -> email.GetConfigRequest
-	6,  // 18: email.EmailConfigService.UpdateConfig:input_type -> email.UpdateConfigRequest
-	7,  // 19: email.EmailConfigService.DeleteConfig:input_type -> email.DeleteConfigRequest
-	10, // 20: email.EmailConfigService.ListConfigs:input_type -> email.ListConfigsRequest
-	12, // 21: email.EmailConfigService.TestConfig:input_type -> email.TestConfigRequest
-	15, // 22: email.EmailService.GetSentEmails:output_type -> email.GetSentEmailsResponse
-	17, // 23: email.EmailService.SendEmail:output_type -> email.SendEmailResponse
-	19, // 24: email.EmailService.SendEmails:output_type -> email.SendEmailsResponse
-	9,  // 25: email.EmailConfigService.CreateConfig:output_type -> email.ConfigResponse
-	9,  // 26: email.EmailConfigService.GetConfig:output_type -> email.ConfigResponse
-	9,  // 27: email.EmailConfigService.UpdateConfig:output_type -> email.ConfigResponse
-	8,  // 28: email.EmailConfigService.DeleteConfig:output_type -> email.DeleteConfigResponse
-	11, // 29: email.EmailConfigService.ListConfigs:output_type -> email.ListConfigsResponse
-	13, // 30: email.EmailConfigService.TestConfig:output_type -> email.TestConfigResponse
-	22, // [22:31] is the sub-list for method output_type
-	13, // [13:22] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	23, // 3: email.EmailConfig.created_at:type_name -> google.protobuf.Timestamp
+	23, // 4: email.EmailConfig.updated_at:type_name -> google.protobuf.Timestamp
+	4,  // 5: email.CreateConfigRequest.config:type_name -> email.EmailConfig
+	4,  // 6: email.UpdateConfigRequest.config:type_name -> email.EmailConfig
+	4,  // 7: email.ConfigResponse.config:type_name -> email.EmailConfig
+	4,  // 8: email.ListConfigsResponse.configs:type_name -> email.EmailConfig
+	4,  // 9: email.TestConfigRequest.config:type_name -> email.EmailConfig
+	3,  // 10: email.GetSentEmailsResponse.emails:type_name -> email.Email
+	3,  // 11: email.SendEmailRequest.email:type_name -> email.Email
+	3,  // 12: email.SendEmailsRequest.emails:type_name -> email.Email
+	1,  // 13: email.HealthCheckResponse.status:type_name -> email.HealthCheckResponse.ServingStatus
+	15, // 14: email.EmailService.GetSentEmails:input_type -> email.GetSentEmailsRequest
+	17, // 15: email.EmailService.SendEmail:input_type -> email.SendEmailRequest
+	19, // 16: email.EmailService.SendEmails:input_type -> email.SendEmailsRequest
+	5,  // 17: email.EmailConfigService.CreateConfig:input_type -> email.CreateConfigRequest
+	6,  // 18: email.EmailConfigService.GetConfig:input_type -> email.GetConfigRequest
+	7,  // 19: email.EmailConfigService.UpdateConfig:input_type -> email.UpdateConfigRequest
+	8,  // 20: email.EmailConfigService.DeleteConfig:input_type -> email.DeleteConfigRequest
+	11, // 21: email.EmailConfigService.ListConfigs:input_type -> email.ListConfigsRequest
+	13, // 22: email.EmailConfigService.TestConfig:input_type -> email.TestConfigRequest
+	21, // 23: email.HealthService.Check:input_type -> email.HealthCheckRequest
+	16, // 24: email.EmailService.GetSentEmails:output_type -> email.GetSentEmailsResponse
+	18, // 25: email.EmailService.SendEmail:output_type -> email.SendEmailResponse
+	20, // 26: email.EmailService.SendEmails:output_type -> email.SendEmailsResponse
+	10, // 27: email.EmailConfigService.CreateConfig:output_type -> email.ConfigResponse
+	10, // 28: email.EmailConfigService.GetConfig:output_type -> email.ConfigResponse
+	10, // 29: email.EmailConfigService.UpdateConfig:output_type -> email.ConfigResponse
+	9,  // 30: email.EmailConfigService.DeleteConfig:output_type -> email.DeleteConfigResponse
+	12, // 31: email.EmailConfigService.ListConfigs:output_type -> email.ListConfigsResponse
+	14, // 32: email.EmailConfigService.TestConfig:output_type -> email.TestConfigResponse
+	22, // 33: email.HealthService.Check:output_type -> email.HealthCheckResponse
+	24, // [24:34] is the sub-list for method output_type
+	14, // [14:24] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_proto_email_proto_init() }
@@ -1441,10 +1610,10 @@ func file_proto_email_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_email_proto_rawDesc), len(file_proto_email_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   19,
+			NumEnums:      2,
+			NumMessages:   21,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_proto_email_proto_goTypes,
 		DependencyIndexes: file_proto_email_proto_depIdxs,
