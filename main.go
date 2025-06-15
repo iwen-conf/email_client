@@ -5,7 +5,7 @@ import (
 )
 
 // Version 代表当前库的版本
-const Version = "0.2.7"
+const Version = "0.2.8"
 
 func main() {
 	fmt.Printf("gRPC Email Client Version: %s\n", Version)

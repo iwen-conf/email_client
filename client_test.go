@@ -527,6 +527,213 @@ func Example_checkingServiceHealth() {
 	}
 }
 
+// Example_sendingHTMLEmails 展示如何发送HTML格式的邮件
+func Example_sendingHTMLEmails() {
+	// 创建一个邮件客户端
+	grpcAddress := "email-service:50051" // 实际使用时替换为真实地址
+	requestTimeout := 10 * time.Second
+	defaultPageSize := int32(20)
+	debug := true
+
+	client, err := client.NewEmailClient(grpcAddress, requestTimeout, defaultPageSize, debug)
+	if err != nil {
+		// 在实际应用中，应适当处理错误
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	configID := "email_config_id" // 替换为实际的邮件配置ID
+
+	// HTML邮件内容模板
+	htmlContent := `
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>HTML邮件</title>
+		<style>
+			body { 
+				font-family: Arial, sans-serif; 
+				line-height: 1.6; 
+				color: #333; 
+			}
+			.container { 
+				max-width: 600px; 
+				margin: 0 auto; 
+				padding: 20px; 
+			}
+			.header { 
+				background-color: #4CAF50; 
+				color: white; 
+				padding: 20px; 
+				text-align: center; 
+				border-radius: 5px 5px 0 0; 
+			}
+			.content { 
+				background-color: #f9f9f9; 
+				padding: 20px; 
+				border: 1px solid #ddd; 
+			}
+			.footer { 
+				background-color: #333; 
+				color: white; 
+				padding: 10px; 
+				text-align: center; 
+				border-radius: 0 0 5px 5px; 
+			}
+			.button { 
+				display: inline-block; 
+				padding: 10px 20px; 
+				background-color: #007BFF; 
+				color: white; 
+				text-decoration: none; 
+				border-radius: 5px; 
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>欢迎使用我们的服务</h1>
+			</div>
+			<div class="content">
+				<h2>这是一封HTML格式的邮件</h2>
+				<p>您好！这是一封<strong>HTML格式</strong>的邮件示例。</p>
+				<ul>
+					<li>支持<em>富文本格式</em></li>
+					<li>支持<a href="https://example.com">链接</a></li>
+					<li>支持样式和布局</li>
+					<li>支持响应式设计</li>
+				</ul>
+				<p>
+					<a href="https://example.com/action" class="button">点击这里</a>
+				</p>
+			</div>
+			<div class="footer">
+				<p>&copy; 2024 您的公司名称. 保留所有权利.</p>
+			</div>
+		</div>
+	</body>
+	</html>
+	`
+
+	// 示例1：发送普通HTML邮件
+	response, err := client.EmailService().SendHTMLEmail(
+		ctx,
+		"HTML邮件测试",
+		htmlContent,
+		"sender@example.com",
+		[]string{"recipient@example.com"},
+		configID,
+	)
+	if err != nil {
+		// 处理错误
+		return
+	}
+	if response.Success {
+		// HTML邮件发送成功
+	}
+
+	// 示例2：发送正常业务HTML邮件
+	businessHTMLContent := `
+	<html>
+	<body>
+		<h2>业务通知</h2>
+		<p>尊敬的客户，</p>
+		<p>您的订单 <strong>#12345</strong> 已经处理完成。</p>
+		<table border="1" style="border-collapse: collapse;">
+			<tr>
+				<th>商品名称</th>
+				<th>数量</th>
+				<th>价格</th>
+			</tr>
+			<tr>
+				<td>产品A</td>
+				<td>2</td>
+				<td>¥100.00</td>
+			</tr>
+		</table>
+		<p>感谢您的购买！</p>
+	</body>
+	</html>
+	`
+
+	normalResponse, err := client.EmailService().SendNormalHTMLEmail(
+		ctx,
+		"订单处理完成通知",
+		businessHTMLContent,
+		"business@example.com",
+		[]string{"customer@example.com"},
+		configID,
+	)
+	if err != nil {
+		// 处理错误
+		return
+	}
+	if normalResponse.Success {
+		// 业务HTML邮件发送成功
+	}
+
+	// 示例3：发送测试HTML邮件
+	testHTMLContent := `
+	<html>
+	<body style="font-family: Arial, sans-serif;">
+		<div style="background-color: #f0f8ff; padding: 20px; border-radius: 10px;">
+			<h2 style="color: #0066cc;">邮件配置测试</h2>
+			<p>这是一封<span style="color: red; font-weight: bold;">测试邮件</span>，用于验证HTML邮件配置是否正常。</p>
+			<div style="background-color: #e6f3ff; padding: 15px; margin: 10px 0; border-left: 4px solid #0066cc;">
+				<strong>测试项目：</strong>
+				<ul>
+					<li>HTML格式渲染</li>
+					<li>CSS样式支持</li>
+					<li>中文字符显示</li>
+					<li>链接功能</li>
+				</ul>
+			</div>
+			<p style="color: #666;">如果您能正常看到这封邮件的格式，说明配置成功！</p>
+		</div>
+	</body>
+	</html>
+	`
+
+	testResponse, err := client.EmailService().SendTestHTMLEmail(
+		ctx,
+		"HTML邮件配置测试",
+		testHTMLContent,
+		"system@example.com",
+		[]string{"admin@example.com"},
+		configID,
+	)
+	if err != nil {
+		// 处理错误
+		return
+	}
+	if testResponse.Success {
+		// 测试HTML邮件发送成功
+	}
+
+	// 示例4：发送带附件的HTML邮件
+	attachmentPaths := []string{"/path/to/report.pdf"}
+
+	htmlWithAttachmentResponse, err := client.EmailService().SendHTMLEmailWithAttachments(
+		ctx,
+		"月度报告（HTML格式）",
+		htmlContent,
+		"reports@example.com",
+		[]string{"manager@example.com"},
+		configID,
+		attachmentPaths,
+	)
+	if err != nil {
+		// 处理错误
+		return
+	}
+	if htmlWithAttachmentResponse.Success {
+		// 带附件的HTML邮件发送成功
+	}
+}
+
 // TestSendEmailWithAttachments 测试发送带附件的功能
 func TestSendEmailWithAttachments(t *testing.T) {
 	// 由于该测试需要实际的服务器连接和文件，这里我们只验证文件处理逻辑

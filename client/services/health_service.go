@@ -37,3 +37,4 @@ func (c *HealthServiceClient) Check(ctx context.Context, serviceName string) (*e
 
 	return c.grpcClient.Check(ctx, req)
 }
+ 

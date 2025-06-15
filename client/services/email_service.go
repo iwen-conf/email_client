@@ -213,6 +213,81 @@ func (c *EmailServiceClient) SendTestEmailWithAttachments(
 	return c.sendEmailWithType(ctx, title, content, from, to, configID, EmailTypeTest, attachmentPaths)
 }
 
+// SendHTMLEmail 发送HTML格式邮件（便捷方法）
+func (c *EmailServiceClient) SendHTMLEmail(
+	ctx context.Context,
+	title string,
+	htmlContent string,
+	from string,
+	to []string,
+	configID string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, []byte(htmlContent), from, to, configID, EmailTypeNormal, nil)
+}
+
+// SendNormalHTMLEmail 发送正常业务HTML邮件（便捷方法）
+func (c *EmailServiceClient) SendNormalHTMLEmail(
+	ctx context.Context,
+	title string,
+	htmlContent string,
+	from string,
+	to []string,
+	configID string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, []byte(htmlContent), from, to, configID, EmailTypeNormal, nil)
+}
+
+// SendTestHTMLEmail 发送测试HTML邮件（便捷方法）
+func (c *EmailServiceClient) SendTestHTMLEmail(
+	ctx context.Context,
+	title string,
+	htmlContent string,
+	from string,
+	to []string,
+	configID string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, []byte(htmlContent), from, to, configID, EmailTypeTest, nil)
+}
+
+// SendHTMLEmailWithAttachments 发送带附件的HTML邮件（便捷方法）
+func (c *EmailServiceClient) SendHTMLEmailWithAttachments(
+	ctx context.Context,
+	title string,
+	htmlContent string,
+	from string,
+	to []string,
+	configID string,
+	attachmentPaths []string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, []byte(htmlContent), from, to, configID, EmailTypeNormal, attachmentPaths)
+}
+
+// SendNormalHTMLEmailWithAttachments 发送带附件的正常业务HTML邮件（便捷方法）
+func (c *EmailServiceClient) SendNormalHTMLEmailWithAttachments(
+	ctx context.Context,
+	title string,
+	htmlContent string,
+	from string,
+	to []string,
+	configID string,
+	attachmentPaths []string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, []byte(htmlContent), from, to, configID, EmailTypeNormal, attachmentPaths)
+}
+
+// SendTestHTMLEmailWithAttachments 发送带附件的测试HTML邮件（便捷方法）
+func (c *EmailServiceClient) SendTestHTMLEmailWithAttachments(
+	ctx context.Context,
+	title string,
+	htmlContent string,
+	from string,
+	to []string,
+	configID string,
+	attachmentPaths []string,
+) (*email_client_pb.SendEmailResponse, error) {
+	return c.sendEmailWithType(ctx, title, []byte(htmlContent), from, to, configID, EmailTypeTest, attachmentPaths)
+}
+
 // sendEmailWithType 内部方法：发送指定类型的邮件
 func (c *EmailServiceClient) sendEmailWithType(
 	ctx context.Context,
